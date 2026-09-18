@@ -182,13 +182,18 @@ function allControls(root: Document | ShadowRoot): Element[] {
   return result;
 }
 
-export function fieldFingerprint(field: Pick<ScannedField, "hostname" | "label" | "name" | "placeholder" | "section" | "type" | "occurrence">): string {
+export function fieldFingerprint(field: Pick<ScannedField, "hostname" | "domId" | "role" | "ariaLabel" | "ariaLabelledBy" | "label" | "name" | "placeholder" | "section" | "sectionLabel" | "type" | "occurrence">): string {
   return hashFingerprint([
     field.hostname,
+    normalizeText(field.domId),
+    normalizeText(field.role),
+    normalizeText(field.ariaLabel),
+    normalizeText(field.ariaLabelledBy),
     normalizeText(field.label),
     normalizeText(field.name),
     normalizeText(field.placeholder),
     normalizeText(field.section),
+    normalizeText(field.sectionLabel),
     normalizeText(field.type),
     String(field.occurrence)
   ].join("|"));
@@ -213,6 +218,10 @@ export function scanDocument(document: Document, hostname = document.location?.h
       id: `rf-field-${fields.length + 1}`,
       tag: element.tagName.toLowerCase(),
       type,
+      domId: element.getAttribute("id") ?? "",
+      role: element.getAttribute("role") ?? "",
+      ariaLabel: element.getAttribute("aria-label") ?? "",
+      ariaLabelledBy: element.getAttribute("aria-labelledby") ?? "",
       label,
       name,
       placeholder,

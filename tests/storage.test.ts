@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyProfile } from "../src/shared/profile";
+import { emptyEducation, emptyProfile } from "../src/shared/profile";
 import { loadMappings, loadProfile, loadSettings, saveMappings, saveProfile, saveSettings, STORAGE_KEYS, type StorageAreaLike } from "../src/shared/storage";
 
 class MemoryStorage implements StorageAreaLike {
@@ -29,5 +29,16 @@ describe("chrome.storage.local boundary", () => {
     expect((await loadMappings(area))).toHaveLength(1);
     expect((await loadSettings(area)).overwriteExisting).toBe(true);
     expect(STORAGE_KEYS.mappings).not.toContain("sync");
+  });
+
+  it("clears repeat mappings when the Profile repeat identity order changes", async () => {
+    const area = new MemoryStorage();
+    const first = emptyProfile();
+    first.education = [{ ...emptyEducation(), id: "edu-1" }, { ...emptyEducation(), id: "edu-2" }];
+    await saveProfile(first, area);
+    await saveMappings([{ id: "mapping-1", hostname: "jobs.example.test", fingerprint: "fnv1a-1", profileKey: "education.edu-1.school", createdAt: "now", updatedAt: "now" }], area);
+    const reordered = { ...first, education: [first.education[1]!, first.education[0]!] };
+    await saveProfile(reordered, area);
+    expect(await loadMappings(area)).toEqual([]);
   });
 });

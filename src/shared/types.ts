@@ -111,6 +111,10 @@ export interface FieldDescriptor {
   id: string;
   tag: string;
   type: string;
+  domId: string;
+  role: string;
+  ariaLabel: string;
+  ariaLabelledBy: string;
   label: string;
   name: string;
   placeholder: string;

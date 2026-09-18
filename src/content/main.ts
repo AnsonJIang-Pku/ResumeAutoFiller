@@ -91,7 +91,7 @@ function installObserver(): void {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["value", "disabled", "class", "style", "name", "type", "hidden", "aria-hidden", "aria-label", "aria-labelledby", "readonly", "aria-readonly", "placeholder", "required"]
+    attributeFilter: ["value", "disabled", "class", "style", "id", "name", "type", "role", "hidden", "aria-hidden", "aria-label", "aria-labelledby", "readonly", "aria-readonly", "placeholder", "required"]
   });
 }
 

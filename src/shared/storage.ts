@@ -26,7 +26,18 @@ export async function loadProfile(area: StorageAreaLike = localStorageArea()): P
 }
 
 export async function saveProfile(profile: ResumeProfile, area: StorageAreaLike = localStorageArea()): Promise<void> {
-  await area.set({ [STORAGE_KEYS.profile]: normalizeProfile(profile) });
+  const normalized = normalizeProfile(profile);
+  const existing = await area.get([STORAGE_KEYS.profile, STORAGE_KEYS.mappings]);
+  const oldProfile = existing[STORAGE_KEYS.profile] ? normalizeProfile(existing[STORAGE_KEYS.profile]) : undefined;
+  const items: Record<string, unknown> = { [STORAGE_KEYS.profile]: normalized };
+  if (oldProfile && repeatIdentitySignature(oldProfile) !== repeatIdentitySignature(normalized)) items[STORAGE_KEYS.mappings] = [];
+  await area.set(items);
+}
+
+function repeatIdentitySignature(profile: ResumeProfile): string {
+  return ["education", "projects", "research", "awards", "languages", "skills"]
+    .map((collection) => `${collection}:${(profile[collection as keyof ResumeProfile] as Array<{ id: string }>).map((entry) => entry.id).join(",")}`)
+    .join("|");
 }
 
 export async function loadMappings(area: StorageAreaLike = localStorageArea()): Promise<FieldMapping[]> {
