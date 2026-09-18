@@ -56,7 +56,7 @@ pnpm build           # 生成 dist/chrome、dist/edge 和 fixtures
 pnpm check           # 依次执行类型、lint、测试、隐私审计和构建
 ```
 
-`test-fixtures/` 只包含虚构页面和虚构资料，不包含任何真实 Profile。测试覆盖 native input/textarea/select、ARIA/邻近 label、重复经历、Shadow DOM、contenteditable、动态字段、已有值保护、敏感/人工控件和 mapping 指纹。`test:coverage` 当前对 `src/shared` 达到 91.08% statement coverage。
+`test-fixtures/` 只包含虚构页面和虚构资料，不包含任何真实 Profile。测试覆盖 native input/textarea/select、ARIA/邻近 label、重复经历、Shadow DOM、contenteditable、动态字段、已有值保护、敏感/人工控件和 mapping 指纹。`test:coverage` 当前对 `src/shared` 达到 91.42% statement coverage。
 
 `test:e2e` 会运行真实构建的 content bundle；另有 unpacked MV3 options/popup 测试。在部分 Chrome 发行版中，Playwright 自动化会强制关闭扩展加载，该测试会被明确标记为 skipped；这不影响手动 `Load unpacked` 安装路径。
 

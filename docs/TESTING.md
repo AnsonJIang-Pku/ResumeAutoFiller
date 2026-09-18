@@ -14,7 +14,7 @@ pnpm build
 
 `pnpm check` 会执行类型检查、lint、Vitest、隐私审计和双浏览器构建。
 
-`test:coverage` 使用 V8 覆盖率，当前 `src/shared` statement coverage 为 91.08%。
+`test:coverage` 使用 V8 覆盖率，当前 `src/shared` statement coverage 为 91.42%。
 
 ## 测试层次
 
