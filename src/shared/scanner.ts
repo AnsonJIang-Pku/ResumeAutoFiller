@@ -100,7 +100,7 @@ function sectionFromText(text: string): string {
 
 function sectionFor(element: Element, label: string): { section: string; sectionLabel: string } {
   let current: Element | null = element;
-  for (let depth = 0; current && depth < 8; depth += 1, current = current.parentElement) {
+  for (let depth = 0; current && depth < 8; depth += 1, current = composedParent(current)) {
     const heading = current.matches("fieldset")
       ? current.querySelector("legend")
       : current.matches("section, form")
@@ -117,7 +117,15 @@ function sectionFor(element: Element, label: string): { section: string; section
   return { section: inferred, sectionLabel: inferred === "other" ? "" : label };
 }
 
+function composedParent(element: Element): Element | null {
+  if (element.parentElement) return element.parentElement;
+  const root = element.getRootNode();
+  return root.nodeType === 11 ? (root as ShadowRoot).host : null;
+}
+
 function capabilityFor(element: Element): FieldCapability {
+  const role = element.getAttribute("role");
+  if (["combobox", "spinbutton", "slider", "button", "checkbox", "radio"].includes(role ?? "")) return "unsupported";
   if (element instanceof HTMLSelectElement) return element.multiple ? "unsupported" : "select";
   if (element.getAttribute("role") === "combobox") return "select";
   if (element instanceof HTMLTextAreaElement) return "textarea";

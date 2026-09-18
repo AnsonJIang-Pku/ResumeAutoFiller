@@ -44,6 +44,24 @@ describe("DOM scanner and deterministic matcher", () => {
     dom.window.close();
   });
 
+  it("does not treat a broad Chinese section word as a field label inside a photo field", () => {
+    const dom = domFromHtml(`<!doctype html><section><h2>项目经历</h2><label>项目照片</label><input type="text"></section>`);
+    const profile = basicProfile();
+    profile.projects = [{ ...emptyProject(), id: "project-1", name: "示例项目" }];
+    const match = matchFields(scanDocument(dom.window.document, "jobs.example.test"), profile)[0];
+    expect(match?.decision).not.toBe("AUTO");
+    dom.window.close();
+  });
+
+  it("keeps explicit spinbutton roles manual even on a text input", () => {
+    const dom = domFromHtml(`<!doctype html><label>GPA</label><input type="text" role="spinbutton">`);
+    const profile = basicProfile();
+    profile.education[0]!.gpa = "3.8";
+    const match = matchFields(scanDocument(dom.window.document, "jobs.example.test"), profile)[0];
+    expect(match?.decision).toBe("MANUAL");
+    dom.window.close();
+  });
+
   it("aligns repeat fields by occurrence and stable Profile IDs", () => {
     const dom = domFromHtml(`<!doctype html><main><fieldset><legend>教育经历</legend><label>学校</label><input><label>专业</label><input></fieldset><fieldset><legend>教育经历</legend><label>学校</label><input><label>专业</label><input></fieldset></main>`);
     const matches = matchFields(scanDocument(dom.window.document, "jobs.example.test"), basicProfile());
@@ -73,6 +91,13 @@ describe("DOM scanner and deterministic matcher", () => {
     const dom = domFromHtml(`<!doctype html><resume-field></resume-field><script>const host=document.querySelector('resume-field');const root=host.attachShadow({mode:'open'});root.innerHTML='<span id="phone-label">手机号</span><input aria-labelledby="phone-label" type="tel">';</script>`, "https://jobs.example.test/app", "dangerously");
     const field = scanDocument(dom.window.document, "jobs.example.test")[0];
     expect(field?.label).toBe("手机号");
+    dom.window.close();
+  });
+
+  it("inherits the outer section through a shadow host", () => {
+    const dom = domFromHtml(`<!doctype html><section><h2>项目经历</h2><resume-field></resume-field><script>const host=document.querySelector('resume-field');const root=host.attachShadow({mode:'open'});root.innerHTML='<label>项目名称</label><input>'; </script></section>`, "https://jobs.example.test/app", "dangerously");
+    const field = scanDocument(dom.window.document, "jobs.example.test")[0];
+    expect(field?.section).toBe("projects");
     dom.window.close();
   });
 

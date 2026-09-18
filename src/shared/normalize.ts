@@ -15,8 +15,11 @@ export function compactText(value: string | null | undefined): string {
 export function containsAlias(haystack: string, alias: string): boolean {
   const normalizedHaystack = normalizeText(haystack);
   const normalizedAlias = normalizeText(alias);
-  const minimumLength = /[\u3400-\u9fff]/u.test(normalizedAlias) ? 2 : 4;
-  return normalizedAlias.length >= minimumLength && normalizedHaystack.includes(normalizedAlias);
+  const containsCjk = /[\u3400-\u9fff]/u.test(normalizedAlias);
+  const minimumLength = containsCjk ? 2 : 4;
+  if (normalizedAlias.length < minimumLength) return false;
+  if (containsCjk) return normalizedHaystack.endsWith(normalizedAlias);
+  return normalizedHaystack.includes(normalizedAlias);
 }
 
 export function isMeaningfulValue(value: string | null | undefined): boolean {

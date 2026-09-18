@@ -87,12 +87,17 @@ function installObserver(): void {
     });
     if (pageChanged) sessionDirty = true;
   });
-  observer.observe(document.documentElement, {
+  const observerOptions: MutationObserverInit = {
     childList: true,
     subtree: true,
     attributes: true,
     attributeFilter: ["value", "disabled", "class", "style", "id", "name", "type", "role", "hidden", "aria-hidden", "aria-label", "aria-labelledby", "readonly", "aria-readonly", "placeholder", "required"]
-  });
+  };
+  const observeRoot = (root: Document | ShadowRoot): void => {
+    observer?.observe(root, observerOptions);
+    for (const element of Array.from(root.querySelectorAll("*"))) if (element.shadowRoot) observeRoot(element.shadowRoot);
+  };
+  observeRoot(document);
 }
 
 function errorResponse(error: string): { ok: false; error: string } {
