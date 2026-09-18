@@ -30,4 +30,20 @@ describe("live field revalidation", () => {
     expect(report.results[0]?.reason).toContain("字段语义");
     dom.window.close();
   });
+
+  it("invalidates an earlier success when a later field event repurposes it", () => {
+    const dom = domFromHtml(`<!doctype html><main><label for="first">姓名</label><input id="first"><label for="second">邮箱</label><input id="second" type="email"></main>`);
+    const profile = emptyProfile();
+    profile.basic.fullName = "Alice Example";
+    profile.basic.email = "alice@example.com";
+    dom.window.document.querySelector<HTMLInputElement>("#second")?.addEventListener("input", () => {
+      dom.window.document.querySelector("label[for='first']")!.textContent = "邮箱";
+    }, { once: true });
+    const page = matchPage(dom.window.document, scanDocument(dom.window.document, "jobs.example.test"), profile);
+    const report = executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
+    expect(report.results[0]?.status).toBe("FAILED");
+    expect(report.results[0]?.reason).toContain("已恢复原值");
+    expect(dom.window.document.querySelector<HTMLInputElement>("#first")?.value).toBe("");
+    dom.window.close();
+  });
 });

@@ -83,21 +83,45 @@ function readActual(field: ScannedField): string {
 }
 
 export function executeMatches(page: PageMatchResult, profile: ResumeProfile, options: ExecuteOptions): FillReport {
-  const results = page.matches.map((match) => {
+  const results: FillResult[] = [];
+  const successful = new Map<string, { match: FieldMatch; field: ScannedField; resultIndex: number; originalValue: string }>();
+  for (const match of page.matches) {
     const liveFields = page.document ? scanDocument(page.document, page.fields[0]?.hostname ?? page.document.location?.hostname ?? "local.page") : page.fields;
     const liveFieldsByElement = new Map(liveFields.map((field) => [field.element, field]));
     const plannedField = page.fields.find((field) => field.id === match.descriptor.id);
     const field = plannedField ? liveFieldsByElement.get(plannedField.element) : undefined;
-    if (!field) return resultForMatch(match, "FAILED", "页面结构已变化，请重新扫描");
-    if (field.fingerprint !== match.descriptor.fingerprint) return resultForMatch(match, "FAILED", "字段标签或控件属性已变化，请重新扫描");
+    if (!field) {
+      results.push(resultForMatch(match, "FAILED", "页面结构已变化，请重新扫描"));
+      continue;
+    }
+    if (field.fingerprint !== match.descriptor.fingerprint) {
+      results.push(resultForMatch(match, "FAILED", "字段标签或控件属性已变化，请重新扫描"));
+      continue;
+    }
     const result = executeOne(match, field, profile, options);
+    results.push(result);
     if (result.status === "FILLED" && page.document) {
       const postEventFields = scanDocument(page.document, field.hostname);
       const postEventField = postEventFields.find((candidate) => candidate.element === field.element);
-      if (!postEventField || postEventField.fingerprint !== match.descriptor.fingerprint) return resultForMatch(match, "FAILED", "填写事件改变了字段语义，请重新扫描");
+      if (!postEventField || postEventField.fingerprint !== match.descriptor.fingerprint) {
+        results[results.length - 1] = resultForMatch(match, "FAILED", "填写事件改变了字段语义，请重新扫描");
+      } else {
+        successful.set(field.id, { match, field, resultIndex: results.length - 1, originalValue: field.currentValue });
+      }
     }
-    return result;
-  });
+    if (page.document && successful.size > 0) {
+      const currentFields = scanDocument(page.document, field.hostname);
+      for (const [fieldId, state] of successful) {
+        const current = currentFields.find((candidate) => candidate.element === state.field.element);
+        if (current && current.fingerprint === state.match.descriptor.fingerprint) continue;
+        if (state.field.element.isConnected) {
+          try { fillElement(state.field.element, state.originalValue, true); } catch { /* The old control may already be gone; the failure remains explicit. */ }
+        }
+        results[state.resultIndex] = resultForMatch(state.match, "FAILED", "此前填写的字段语义在后续事件中发生变化，已恢复原值");
+        successful.delete(fieldId);
+      }
+    }
+  }
   return {
     hostname: page.fields[0]?.hostname ?? "local.page",
     scanned: page.fields.length,
