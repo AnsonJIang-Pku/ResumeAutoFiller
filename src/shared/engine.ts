@@ -90,7 +90,13 @@ export function executeMatches(page: PageMatchResult, profile: ResumeProfile, op
     const field = plannedField ? liveFieldsByElement.get(plannedField.element) : undefined;
     if (!field) return resultForMatch(match, "FAILED", "页面结构已变化，请重新扫描");
     if (field.fingerprint !== match.descriptor.fingerprint) return resultForMatch(match, "FAILED", "字段标签或控件属性已变化，请重新扫描");
-    return executeOne(match, field, profile, options);
+    const result = executeOne(match, field, profile, options);
+    if (result.status === "FILLED" && page.document) {
+      const postEventFields = scanDocument(page.document, field.hostname);
+      const postEventField = postEventFields.find((candidate) => candidate.element === field.element);
+      if (!postEventField || postEventField.fingerprint !== match.descriptor.fingerprint) return resultForMatch(match, "FAILED", "填写事件改变了字段语义，请重新扫描");
+    }
+    return result;
   });
   return {
     hostname: page.fields[0]?.hostname ?? "local.page",

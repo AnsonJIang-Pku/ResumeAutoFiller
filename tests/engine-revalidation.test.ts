@@ -16,4 +16,18 @@ describe("live field revalidation", () => {
     expect(report.results[0]?.reason).toContain("属性已变化");
     dom.window.close();
   });
+
+  it("rejects a connected field whose label changes during its input event", () => {
+    const dom = domFromHtml(`<!doctype html><label for="field">姓名</label><input id="field">`);
+    const profile = emptyProfile();
+    profile.basic.fullName = "Alice Example";
+    dom.window.document.querySelector<HTMLInputElement>("#field")?.addEventListener("input", () => {
+      dom.window.document.querySelector("label")!.textContent = "邮箱";
+    }, { once: true });
+    const page = matchPage(dom.window.document, scanDocument(dom.window.document, "jobs.example.test"), profile);
+    const report = executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
+    expect(report.results[0]?.status).toBe("FAILED");
+    expect(report.results[0]?.reason).toContain("字段语义");
+    dom.window.close();
+  });
 });
