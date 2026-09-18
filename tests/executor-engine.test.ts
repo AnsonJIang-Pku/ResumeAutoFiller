@@ -49,6 +49,16 @@ describe("DOM executor and verification", () => {
     expect(verifyElement(editor, "示例项目描述")).toBe(true);
     dom.window.close();
   });
+
+  it("normalizes supported month values for native date inputs before verification", () => {
+    const dom = domFromHtml(`<!doctype html><input type="date">`);
+    const input = dom.window.document.querySelector("input");
+    if (!input) throw new Error("date input missing");
+    fillElement(input, "2024-06");
+    expect(input.value).toBe("2024-06-01");
+    expect(verifyElement(input, "2024-06")).toBe(true);
+    dom.window.close();
+  });
 });
 
 describe("fill engine", () => {

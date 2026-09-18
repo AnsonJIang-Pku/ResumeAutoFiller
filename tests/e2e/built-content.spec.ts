@@ -43,15 +43,23 @@ test.describe("built content script in Chromium", () => {
     const scan = await page.evaluate((currentProfile) => new Promise<Record<string, unknown>>((resolve) => {
       const listener = (window as Window & { __rafMessage?: (message: unknown, sender: unknown, callback: (response: unknown) => void) => void }).__rafMessage;
       if (!listener) throw new Error("content listener was not installed");
-      listener({ type: "SCAN_PAGE", profile: currentProfile, mappings: [] }, {}, (response) => resolve(response as Record<string, unknown>));
+      listener({ type: "SCAN_PAGE", profile: currentProfile, mappings: [] }, {}, (response) => resolve(structuredClone(response) as Record<string, unknown>));
     }), profile);
     expect(scan.ok).toBe(true);
     expect(scan.scanned).toBe(2);
     expect(scan.autoCandidates).toBe(2);
+    const staleConfirmation = await page.evaluate(({ currentProfile, staleSessionId }) => new Promise<Record<string, unknown>>((resolve) => {
+      const listener = (window as Window & { __rafMessage?: (message: unknown, sender: unknown, callback: (response: unknown) => void) => void }).__rafMessage;
+      if (!listener) throw new Error("content listener was not installed");
+      listener({ type: "SCAN_PAGE", profile: currentProfile, mappings: [] }, {}, () => {
+        listener({ type: "FILL_SELECTED_SUGGESTION", profile: currentProfile, fieldId: "rf-field-1", sessionId: staleSessionId, overwriteExisting: false }, {}, (response) => resolve(structuredClone(response) as Record<string, unknown>));
+      });
+    }), { currentProfile: profile, staleSessionId: String(scan.sessionId) });
+    expect(staleConfirmation.ok).toBe(false);
     const fill = await page.evaluate((currentProfile) => new Promise<Record<string, unknown>>((resolve) => {
       const listener = (window as Window & { __rafMessage?: (message: unknown, sender: unknown, callback: (response: unknown) => void) => void }).__rafMessage;
       if (!listener) throw new Error("content listener was not installed");
-      listener({ type: "FILL_HIGH_CONFIDENCE", profile: currentProfile, overwriteExisting: false }, {}, (response) => resolve(response as Record<string, unknown>));
+      listener({ type: "FILL_HIGH_CONFIDENCE", profile: currentProfile, overwriteExisting: false }, {}, (response) => resolve(structuredClone(response) as Record<string, unknown>));
     }), profile);
     expect(fill.ok).toBe(true);
     expect(await page.locator("#name").inputValue()).toBe("Alice Example");

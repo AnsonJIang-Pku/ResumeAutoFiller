@@ -69,7 +69,8 @@ export function fillElement(element: FormElement, expected: string, overwriteExi
     fillSelect(element, expected);
     return;
   }
-  if (element.getAttribute("contenteditable") === "true") {
+  const contenteditable = element.getAttribute("contenteditable");
+  if (contenteditable !== null && contenteditable !== "false") {
     if (element.getAttribute("aria-readonly") === "true") throw new Error("Readonly field");
     if (!overwriteExisting && hasExistingValue(element)) throw new Error("Existing value is protected");
     element.textContent = expected;
@@ -82,7 +83,10 @@ export function fillElement(element: FormElement, expected: string, overwriteExi
 export function verifyElement(element: FormElement, expected: string): boolean {
   const actual = readValue(element);
   if (element instanceof HTMLSelectElement) return normalizeText(actual) === normalizeText(expected) || normalizeText(element.selectedOptions[0]?.textContent) === normalizeText(expected);
-  return actual === expected;
+  const comparableExpected = element instanceof HTMLInputElement && ["date", "month"].includes(element.type)
+    ? normalizedDateForInput(expected, element.type) ?? expected
+    : expected;
+  return actual === comparableExpected;
 }
 
 export function resultForFailure(field: ScannedField, status: FillResult["status"], reason: string): FillResult {

@@ -4,17 +4,16 @@ import { emptyProfile } from "../src/shared/profile";
 import { scanDocument } from "../src/shared/scanner";
 import { domFromHtml } from "./helpers";
 
-describe("stale DOM safety", () => {
-  it("refuses to fill a detached field reference after a rerender", () => {
-    const dom = domFromHtml(`<!doctype html><main id="root"><label>姓名</label><input></main>`);
+describe("live field revalidation", () => {
+  it("rejects a field whose label was repurposed after scan", () => {
+    const dom = domFromHtml(`<!doctype html><label for="field">姓名</label><input id="field">`);
     const profile = emptyProfile();
     profile.basic.fullName = "Alice Example";
-    const fields = scanDocument(dom.window.document, "jobs.example.test");
-    const page = matchPage(dom.window.document, fields, profile);
-    dom.window.document.querySelector("input")?.remove();
+    const page = matchPage(dom.window.document, scanDocument(dom.window.document, "jobs.example.test"), profile);
+    dom.window.document.querySelector("label")!.textContent = "邮箱";
     const report = executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
     expect(report.results[0]?.status).toBe("FAILED");
-    expect(report.results[0]?.reason).toContain("页面结构已变化");
+    expect(report.results[0]?.reason).toContain("属性已变化");
     dom.window.close();
   });
 });

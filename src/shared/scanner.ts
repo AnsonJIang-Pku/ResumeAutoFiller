@@ -6,7 +6,7 @@ const CONTROL_SELECTOR = [
   "input",
   "textarea",
   "select",
-  "[contenteditable='true']",
+  "[contenteditable]:not([contenteditable='false'])",
   "[role='textbox']",
   "[role='combobox']",
   "[role='spinbutton']"
@@ -51,8 +51,15 @@ function pushUnique(target: string[], value: string | null | undefined): void {
 function labelledByText(element: Element): string {
   const ids = (element.getAttribute("aria-labelledby") ?? "").split(/\s+/).filter(Boolean);
   const values: string[] = [];
-  for (const id of ids) pushUnique(values, element.ownerDocument.getElementById(id)?.textContent);
+  const root = element.getRootNode();
+  const lookup = (id: string): Element | undefined => (root.nodeType === 9 || root.nodeType === 11 ? Array.from((root as Document | ShadowRoot).querySelectorAll("[id]")).find((candidate) => candidate.id === id) : undefined);
+  for (const id of ids) pushUnique(values, lookup(id)?.textContent);
   return values.join(" ");
+}
+
+function rootLabels(element: Element): HTMLLabelElement[] {
+  const root = element.getRootNode();
+  return root.nodeType === 9 || root.nodeType === 11 ? Array.from((root as Document | ShadowRoot).querySelectorAll("label")) : [];
 }
 
 function nearbyLabel(element: Element): string {
@@ -63,7 +70,7 @@ function nearbyLabel(element: Element): string {
   pushUnique(values, labelledByText(element));
   const id = element.getAttribute("id");
   if (id) {
-    const explicit = Array.from(element.ownerDocument.querySelectorAll("label")).find((label) => label.htmlFor === id);
+    const explicit = rootLabels(element).find((label) => label.htmlFor === id);
     pushUnique(values, explicit?.textContent);
   }
   pushUnique(values, element.closest("label")?.textContent);
@@ -111,12 +118,14 @@ function sectionFor(element: Element, label: string): { section: string; section
 }
 
 function capabilityFor(element: Element): FieldCapability {
-  if (element instanceof HTMLSelectElement || element.getAttribute("role") === "combobox") return "select";
+  if (element instanceof HTMLSelectElement) return element.multiple ? "unsupported" : "select";
+  if (element.getAttribute("role") === "combobox") return "select";
   if (element instanceof HTMLTextAreaElement) return "textarea";
-  if (element.getAttribute("contenteditable") === "true") return "contenteditable";
+  const contenteditable = element.getAttribute("contenteditable");
+  if (contenteditable !== null && contenteditable !== "false") return "contenteditable";
   if (element instanceof HTMLInputElement) {
     if (["hidden", "submit", "button", "reset"].includes(element.type)) return "unsupported";
-    return ["file", "password", "checkbox", "radio"].includes(element.type) ? "unsupported" : "text";
+    return ["text", "email", "tel", "number", "date", "month", "search", "url"].includes(element.type) ? "text" : "unsupported";
   }
   if (element.getAttribute("role") === "textbox" || element.getAttribute("role") === "spinbutton") return "unsupported";
   return "unsupported";
@@ -131,8 +140,34 @@ function currentValue(element: Element): string {
 function fieldType(element: Element): string {
   if (element instanceof HTMLInputElement) return element.type || "text";
   if (element instanceof HTMLTextAreaElement) return "textarea";
-  if (element instanceof HTMLSelectElement) return "select";
+  if (element instanceof HTMLSelectElement) return element.multiple ? "select-multiple" : "select";
+  if (element.getAttribute("contenteditable") !== null && element.getAttribute("contenteditable") !== "false") return "contenteditable";
   return element.getAttribute("role") || (element.getAttribute("contenteditable") === "true" ? "contenteditable" : element.tagName.toLowerCase());
+}
+
+function repeatRowOccurrence(element: Element, section: string): number | undefined {
+  const fieldset = element.closest("fieldset");
+  if (fieldset) {
+    const fieldsets = Array.from(element.ownerDocument.querySelectorAll("fieldset")).filter((candidate) => sectionFor(candidate, candidate.querySelector("legend")?.textContent ?? "").section === section);
+    const index = fieldsets.indexOf(fieldset);
+    if (index >= 0 && fieldsets.length > 1) return index;
+  }
+  let current: Element | null = element.parentElement;
+  for (let depth = 0; current && depth < 6; depth += 1, current = current.parentElement) {
+    const className = typeof current.className === "string" ? current.className : "";
+    if (!/(entry|record|experience|education|project|research|award|row|card)/i.test(className) || /form[-_]?item|form[-_]?group/i.test(className)) continue;
+    const parent = current.parentElement;
+    if (!parent) continue;
+    const currentTag = current.tagName;
+    const currentClass = className;
+    const peers = Array.from(parent.children).filter((candidate) => {
+      const candidateClass = typeof candidate.className === "string" ? candidate.className : "";
+      return candidate.tagName === currentTag && candidateClass === currentClass && candidate.querySelector(CONTROL_SELECTOR);
+    });
+    const index = peers.indexOf(current);
+    if (peers.length > 1 && index >= 0) return index;
+  }
+  return undefined;
 }
 
 function allControls(root: Document | ShadowRoot): Element[] {
@@ -171,8 +206,9 @@ export function scanDocument(document: Document, hostname = document.location?.h
     const name = element.getAttribute("name") ?? "";
     const placeholder = element.getAttribute("placeholder") ?? "";
     const signature = `${section}|${normalizeText(label || name || placeholder).replace(/\d+/g, "")}`;
-    const occurrence = occurrenceBySignature.get(signature) ?? 0;
-    occurrenceBySignature.set(signature, occurrence + 1);
+    const repeatedOccurrence = repeatRowOccurrence(element, section);
+    const occurrence = repeatedOccurrence ?? (occurrenceBySignature.get(signature) ?? 0);
+    occurrenceBySignature.set(signature, Math.max(occurrenceBySignature.get(signature) ?? 0, occurrence + 1));
     const descriptorBase = {
       id: `rf-field-${fields.length + 1}`,
       tag: element.tagName.toLowerCase(),

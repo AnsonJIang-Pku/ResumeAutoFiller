@@ -15,7 +15,8 @@ export function compactText(value: string | null | undefined): string {
 export function containsAlias(haystack: string, alias: string): boolean {
   const normalizedHaystack = normalizeText(haystack);
   const normalizedAlias = normalizeText(alias);
-  return normalizedAlias.length > 0 && normalizedHaystack.includes(normalizedAlias);
+  const minimumLength = /[\u3400-\u9fff]/u.test(normalizedAlias) ? 2 : 4;
+  return normalizedAlias.length >= minimumLength && normalizedHaystack.includes(normalizedAlias);
 }
 
 export function isMeaningfulValue(value: string | null | undefined): boolean {

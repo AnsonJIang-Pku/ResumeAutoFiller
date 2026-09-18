@@ -1,16 +1,31 @@
 import { executeMatches, matchPage, type PageMatchResult } from "../shared/engine";
+import { createStableId } from "../shared/ids";
 import { scanDocument } from "../shared/scanner";
 import type { ExtensionMessage } from "../shared/messages";
 import type { FillReport, FieldMatch } from "../shared/types";
 
 let session: PageMatchResult | null = null;
+let sessionId = "";
 let sessionDirty = false;
 let observer: MutationObserver | null = null;
 
 function toPublicMatch(match: FieldMatch): FieldMatch {
+  const descriptor = { ...match.descriptor } as FieldMatch["descriptor"] & { element?: unknown };
+  delete descriptor.element;
   return {
     ...match,
-    descriptor: { ...match.descriptor }
+    descriptor
+  };
+}
+
+function toPublicReport(report: FillReport): FillReport {
+  return {
+    ...report,
+    results: report.results.map((result) => {
+      const descriptor = result.descriptor ? { ...result.descriptor } as FillReport["results"][number]["descriptor"] & { element?: unknown } : undefined;
+      if (descriptor) delete descriptor.element;
+      return { ...result, descriptor };
+    })
   };
 }
 
@@ -72,7 +87,12 @@ function installObserver(): void {
     });
     if (pageChanged) sessionDirty = true;
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["value", "disabled", "class", "style"] });
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["value", "disabled", "class", "style", "name", "type", "hidden", "aria-hidden", "aria-label", "aria-labelledby", "readonly", "aria-readonly", "placeholder", "required"]
+  });
 }
 
 function errorResponse(error: string): { ok: false; error: string } {
@@ -83,12 +103,14 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
   if (message.type === "SCAN_PAGE") {
     const fields = scanDocument(document, location.hostname || "local.page");
     session = matchPage(document, fields, message.profile, message.mappings);
+    sessionId = createStableId("scan");
     sessionDirty = false;
     installObserver();
     return {
       ok: true,
       adapterId: session.adapterId,
       adapterName: session.adapterName,
+      sessionId,
       matches: session.matches.map(toPublicMatch),
       scanned: session.fields.length,
       autoCandidates: session.matches.filter((match) => match.decision === "AUTO").length,
@@ -101,10 +123,11 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
     if (sessionDirty) return errorResponse("页面结构已经变化，请重新扫描后再填写");
     const report = executeMatches(session, message.profile, { overwriteExisting: message.overwriteExisting, autoOnly: true });
     showOverlay(report);
-    return { ok: true, report };
+    return { ok: true, report: toPublicReport(report) };
   }
   if (message.type === "FILL_SELECTED_SUGGESTION") {
     if (!session) return errorResponse("请先扫描当前页面");
+    if (message.sessionId !== sessionId) return errorResponse("扫描结果已经过期，请重新扫描后再确认");
     if (sessionDirty) return errorResponse("页面结构已经变化，请重新扫描后再确认");
     const match = session.matches.find((item) => item.descriptor.id === message.fieldId);
     if (!match) return errorResponse("字段已经变化，请重新扫描");
@@ -115,7 +138,7 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
     };
     const report = executeMatches(singlePage, message.profile, { overwriteExisting: message.overwriteExisting, selectedFieldIds: new Set([message.fieldId]) });
     showOverlay(report);
-    return { ok: true, report };
+    return { ok: true, report: toPublicReport(report) };
   }
   return errorResponse("当前页面不支持此操作");
 }

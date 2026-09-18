@@ -1,10 +1,9 @@
-import { readFile, readdir, stat } from "node:fs/promises";
+import { access, readFile, readdir, stat } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptsDir = fileURLToPath(new URL(".", import.meta.url));
 const root = join(scriptsDir, "..");
-const sourceRoot = join(root, "src");
 const forbidden = [
   /\bfetch\s*\(/,
   /\bXMLHttpRequest\b/,
@@ -13,20 +12,27 @@ const forbidden = [
   /navigator\.sendBeacon/,
   /chrome\.storage\.sync/,
   /\b(?:analytics|telemetry|sentry)\b/i,
-  /console\.log\s*\(/
+  /console\.log\s*\(/,
+  /\b(?:https?|wss?):\/\//
 ];
 
 const files = [];
-async function collect(directory) {
+async function collect(directory, extensions) {
   for (const entry of await readdir(directory)) {
     const path = join(directory, entry);
     const entryStat = await stat(path);
-    if (entryStat.isDirectory()) await collect(path);
-    else if ([".ts", ".html", ".json"].includes(extname(path))) files.push(path);
+    if (entryStat.isDirectory()) await collect(path, extensions);
+    else if (extensions.includes(extname(path))) files.push(path);
   }
 }
 
-await collect(sourceRoot);
+await collect(join(root, "src"), [".ts", ".html", ".css", ".json"]);
+try {
+  await access(join(root, "dist"));
+  await collect(join(root, "dist"), [".js", ".html", ".css", ".json"]);
+} catch {
+  // A source-only audit is still useful before the first build.
+}
 const violations = [];
 for (const file of files) {
   const contents = await readFile(file, "utf8");
@@ -43,6 +49,17 @@ for (const permission of permissions) {
 }
 if (permissions.has("storage") && permissions.has("sync")) {
   violations.push("sync storage is forbidden");
+}
+
+for (const builtBrowser of ["chrome", "edge"]) {
+  try {
+    const builtManifest = JSON.parse(await readFile(join(root, "dist", builtBrowser, "manifest.json"), "utf8"));
+    const builtPermissions = new Set(builtManifest.permissions ?? []);
+    for (const permission of builtPermissions) if (!allowed.has(permission)) violations.push(`built ${builtBrowser} manifest permission is outside the allowlist: ${permission}`);
+    if (builtManifest.host_permissions || builtManifest.optional_host_permissions) violations.push(`built ${builtBrowser} manifest declares host permissions`);
+  } catch {
+    // The generated manifest is checked when dist exists; source checks remain valid before build.
+  }
 }
 
 if (violations.length > 0) {

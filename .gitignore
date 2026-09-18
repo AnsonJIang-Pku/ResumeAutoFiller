@@ -11,6 +11,9 @@ profile.local.json
 profile*.local.json
 *.resume-profile.json
 *.resume-mapping.json
+resumeautofiller-profile.json
+resumeautofiller-*.json
+*.profile.json
 
 # Tool output and local screenshots.
 playwright-report/

@@ -5,6 +5,7 @@ import { maskSensitiveValue } from "../shared/normalize";
 let profile: ResumeProfile;
 let settings: StoredSettings = { overwriteExisting: false };
 let matches: PublicMatch[] = [];
+let sessionId = "";
 
 const byId = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -121,6 +122,7 @@ async function scan(): Promise<void> {
   const response = await send<ScanResponse>({ type: "SCAN_PAGE", profile, mappings: [] });
   if (!response.ok || !response.matches) throw new Error(response.error ?? "页面扫描失败");
   matches = response.matches;
+  sessionId = response.sessionId ?? "";
   renderMatches();
   renderSummary({ scanned: response.scanned ?? 0, autoCandidates: response.autoCandidates ?? 0, suggestions: response.suggestions ?? 0, abstained: response.abstained ?? 0 });
   setStatus(`扫描完成：${response.adapterName ?? "通用表单"}。高置信度字段不会覆盖已有内容。`);
@@ -136,7 +138,7 @@ async function fillHighConfidence(): Promise<void> {
 
 async function confirmSuggestion(fieldId: string, button: HTMLButtonElement): Promise<void> {
   button.disabled = true;
-  const response = await send<FillResponse>({ type: "FILL_SELECTED_SUGGESTION", profile, fieldId, overwriteExisting: settings.overwriteExisting });
+  const response = await send<FillResponse>({ type: "FILL_SELECTED_SUGGESTION", profile, fieldId, sessionId, overwriteExisting: settings.overwriteExisting });
   if (!response.ok || !response.report) {
     button.disabled = false;
     setStatus(response.error ?? "建议字段填写失败", true);

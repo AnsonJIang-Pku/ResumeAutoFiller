@@ -3,6 +3,7 @@ import { compactText, maskSensitiveValue } from "./normalize";
 import { resolveProfileValue } from "./profile";
 import { fillElement, hasExistingValue, resultForFailure, verifyElement } from "./executor";
 import { matchFields } from "./matcher";
+import { scanDocument } from "./scanner";
 import type { FieldMapping, FieldMatch, FillReport, FillResult, ResumeProfile, ScannedField } from "./types";
 
 export interface PageMatchResult {
@@ -10,6 +11,7 @@ export interface PageMatchResult {
   matches: FieldMatch[];
   adapterId: string;
   adapterName: string;
+  document?: Document;
 }
 
 export interface ExecuteOptions {
@@ -20,7 +22,7 @@ export interface ExecuteOptions {
 
 export function matchPage(document: Document, fields: ScannedField[], profile: ResumeProfile, mappings: FieldMapping[] = []): PageMatchResult {
   const adapter = detectAdapter({ hostname: document.location?.hostname ?? "local.page", document });
-  return { fields, matches: matchFields(fields, profile, mappings), adapterId: adapter.id, adapterName: adapter.displayName };
+  return { fields, matches: matchFields(fields, profile, mappings), adapterId: adapter.id, adapterName: adapter.displayName, document };
 }
 
 function labelFor(match: FieldMatch): string {
@@ -79,10 +81,13 @@ function readActual(field: ScannedField): string {
 }
 
 export function executeMatches(page: PageMatchResult, profile: ResumeProfile, options: ExecuteOptions): FillReport {
-  const fieldsById = new Map(page.fields.map((field) => [field.id, field]));
+  const liveFields = page.document ? scanDocument(page.document, page.fields[0]?.hostname ?? page.document.location?.hostname ?? "local.page") : page.fields;
+  const liveFieldsByElement = new Map(liveFields.map((field) => [field.element, field]));
   const results = page.matches.map((match) => {
-    const field = fieldsById.get(match.descriptor.id);
+    const plannedField = page.fields.find((field) => field.id === match.descriptor.id);
+    const field = plannedField ? liveFieldsByElement.get(plannedField.element) : undefined;
     if (!field) return resultForMatch(match, "FAILED", "页面结构已变化，请重新扫描");
+    if (field.fingerprint !== match.descriptor.fingerprint) return resultForMatch(match, "FAILED", "字段标签或控件属性已变化，请重新扫描");
     return executeOne(match, field, profile, options);
   });
   return {

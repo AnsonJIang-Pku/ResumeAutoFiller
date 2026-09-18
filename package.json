@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "pnpm build && playwright test",
     "privacy:audit": "node scripts/privacy-audit.mjs",
-    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm privacy:audit && pnpm build"
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm privacy:audit"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
