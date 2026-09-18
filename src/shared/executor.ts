@@ -2,7 +2,6 @@ import { compactText, normalizeText } from "./normalize";
 import type { FillResult, FormElement, ScannedField } from "./types";
 
 function dispatchValueEvents(element: FormElement): void {
-  if (typeof element.focus === "function") element.focus();
   const inputEvent = typeof InputEvent === "function"
     ? new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: null })
     : new Event("input", { bubbles: true, composed: true });
@@ -12,7 +11,13 @@ function dispatchValueEvents(element: FormElement): void {
   else element.dispatchEvent(new Event("blur", { bubbles: true, composed: true }));
 }
 
+function focusAndVerify(element: FormElement): void {
+  if (typeof element.focus === "function") element.focus();
+  if (!element.isConnected) throw new Error("Field changed during focus");
+}
+
 function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+  focusAndVerify(element);
   const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
   const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
   if (!descriptor?.set) throw new Error("Native value setter is unavailable");
@@ -66,6 +71,7 @@ export function fillElement(element: FormElement, expected: string, overwriteExi
   if (element instanceof HTMLSelectElement) {
     if (element.disabled) throw new Error("Disabled field");
     if (!overwriteExisting && hasExistingValue(element)) throw new Error("Existing value is protected");
+    focusAndVerify(element);
     fillSelect(element, expected);
     return;
   }
@@ -73,6 +79,7 @@ export function fillElement(element: FormElement, expected: string, overwriteExi
   if (contenteditable !== null && contenteditable !== "false") {
     if (element.getAttribute("aria-readonly") === "true") throw new Error("Readonly field");
     if (!overwriteExisting && hasExistingValue(element)) throw new Error("Existing value is protected");
+    focusAndVerify(element);
     element.textContent = expected;
     dispatchValueEvents(element);
     return;

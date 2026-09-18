@@ -59,6 +59,20 @@ describe("DOM executor and verification", () => {
     expect(verifyElement(input, "2024-06")).toBe(true);
     dom.window.close();
   });
+
+  it("fails closed if a focus handler replaces the control before the setter", () => {
+    const dom = domFromHtml(`<!doctype html><input id="field">`);
+    const input = dom.window.document.querySelector<HTMLInputElement>("#field");
+    if (!input) throw new Error("input missing");
+    input.addEventListener("focus", () => {
+      const replacement = dom.window.document.createElement("input");
+      replacement.id = "field";
+      input.replaceWith(replacement);
+    }, { once: true });
+    expect(() => fillElement(input, "Alice Example")).toThrow("Field changed during focus");
+    expect(dom.window.document.querySelector<HTMLInputElement>("#field")?.value).toBe("");
+    dom.window.close();
+  });
 });
 
 describe("fill engine", () => {

@@ -58,6 +58,7 @@ function executeOne(match: FieldMatch, field: ScannedField, profile: ResumeProfi
   if (!options.overwriteExisting && hasExistingValue(field.element)) return resultForMatch(match, "SKIPPED", "已有内容，默认不覆盖");
   try {
     fillElement(field.element, value, options.overwriteExisting);
+    if (!field.element.isConnected) return resultForMatch(match, "FAILED", "填写事件改变了页面结构，请重新扫描");
     if (!verifyElement(field.element, value)) return {
       ...resultForMatch(match, "FAILED", "填写后复核失败"),
       expected: match.sensitiveReview ? maskSensitiveValue(value) : value,
