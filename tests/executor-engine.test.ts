@@ -105,6 +105,27 @@ describe("fill engine", () => {
     dom.window.close();
   });
 
+  it("revalidates each later field after an earlier field event rerenders the form", () => {
+    const dom = domFromHtml(`<!doctype html><main><label>姓名</label><input id="first"><label>邮箱</label><input id="second" type="email"></main>`);
+    const profile = emptyProfile();
+    profile.basic.fullName = "Alice Example";
+    profile.basic.email = "alice@example.com";
+    const first = dom.window.document.querySelector<HTMLInputElement>("#first");
+    if (!first) throw new Error("first input missing");
+    first.addEventListener("input", () => {
+      const replacement = dom.window.document.createElement("input");
+      replacement.id = "second";
+      replacement.type = "email";
+      dom.window.document.querySelector("#second")?.replaceWith(replacement);
+    }, { once: true });
+    const page = matchPage(dom.window.document, scanDocument(dom.window.document, "jobs.example.test"), profile);
+    const report = executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
+    expect(report.results[0]?.status).toBe("FILLED");
+    expect(report.results[1]?.status).toBe("FAILED");
+    expect(dom.window.document.querySelector<HTMLInputElement>("#second")?.value).toBe("");
+    dom.window.close();
+  });
+
   it("reuses only an exact hostname and field fingerprint mapping", () => {
     const dom = domFromHtml(`<!doctype html><main><label>最高阶段毕业单位</label><input></main>`);
     const profile = emptyProfile();

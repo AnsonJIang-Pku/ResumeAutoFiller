@@ -83,9 +83,9 @@ function readActual(field: ScannedField): string {
 }
 
 export function executeMatches(page: PageMatchResult, profile: ResumeProfile, options: ExecuteOptions): FillReport {
-  const liveFields = page.document ? scanDocument(page.document, page.fields[0]?.hostname ?? page.document.location?.hostname ?? "local.page") : page.fields;
-  const liveFieldsByElement = new Map(liveFields.map((field) => [field.element, field]));
   const results = page.matches.map((match) => {
+    const liveFields = page.document ? scanDocument(page.document, page.fields[0]?.hostname ?? page.document.location?.hostname ?? "local.page") : page.fields;
+    const liveFieldsByElement = new Map(liveFields.map((field) => [field.element, field]));
     const plannedField = page.fields.find((field) => field.id === match.descriptor.id);
     const field = plannedField ? liveFieldsByElement.get(plannedField.element) : undefined;
     if (!field) return resultForMatch(match, "FAILED", "页面结构已变化，请重新扫描");
