@@ -143,10 +143,16 @@ async function confirmSuggestion(fieldId: string, button: HTMLButtonElement): Pr
     return;
   }
   renderReport(response.report);
+  const result = response.report.results[0];
   const match = matches.find((item) => item.descriptor.id === fieldId);
-  if (match) match.decision = "EXISTING";
-  button.remove();
-  setStatus("已记录这次用户确认的字段映射；未来仅在页面指纹完全一致时复用。请继续检查页面。 ");
+  if (result?.status === "FILLED") {
+    if (match) match.decision = "EXISTING";
+    button.remove();
+    setStatus("已记录这次用户确认的字段映射；未来仅在页面指纹完全一致时复用。请继续检查页面。 ");
+  } else {
+    button.disabled = false;
+    setStatus(`这次建议没有成功填写：${result?.reason ?? "请重新扫描"}`, true);
+  }
 }
 
 function wireEvents(): void {

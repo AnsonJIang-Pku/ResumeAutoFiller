@@ -31,11 +31,19 @@ export async function saveProfile(profile: ResumeProfile, area: StorageAreaLike 
 
 export async function loadMappings(area: StorageAreaLike = localStorageArea()): Promise<FieldMapping[]> {
   const result = await area.get(STORAGE_KEYS.mappings);
-  return Array.isArray(result[STORAGE_KEYS.mappings]) ? result[STORAGE_KEYS.mappings] as FieldMapping[] : [];
+  const stored = result[STORAGE_KEYS.mappings];
+  if (!Array.isArray(stored)) return [];
+  return stored.filter(isFieldMapping);
 }
 
 export async function saveMappings(mappings: FieldMapping[], area: StorageAreaLike = localStorageArea()): Promise<void> {
-  await area.set({ [STORAGE_KEYS.mappings]: mappings });
+  await area.set({ [STORAGE_KEYS.mappings]: mappings.filter(isFieldMapping) });
+}
+
+function isFieldMapping(value: unknown): value is FieldMapping {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return ["id", "hostname", "fingerprint", "profileKey", "createdAt", "updatedAt"].every((key) => typeof candidate[key] === "string");
 }
 
 export async function loadSettings(area: StorageAreaLike = localStorageArea()): Promise<StoredSettings> {

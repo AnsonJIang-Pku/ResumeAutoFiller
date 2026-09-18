@@ -50,7 +50,7 @@ function unsupportedReason(field: ScannedField): FieldMatch["reason"] | undefine
   if (field.readOnly) return "READONLY";
   if (field.type === "file") return "FILE_UPLOAD";
   if (["password", "checkbox", "radio"].includes(field.type)) return "CHECKBOX_OR_RADIO";
-  if (field.type === "combobox" || field.type === "spinbutton" || field.fillCapability === "select" && field.tag !== "select") return "UNSUPPORTED_CONTROL";
+  if (field.type === "combobox" || field.type === "spinbutton" || (field.fillCapability === "select" && field.tag !== "select")) return "UNSUPPORTED_CONTROL";
   if (field.fillCapability === "unsupported") return "UNSUPPORTED_CONTROL";
   return undefined;
 }

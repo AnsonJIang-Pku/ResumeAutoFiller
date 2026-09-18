@@ -6,13 +6,14 @@ import { fileURLToPath } from "node:url";
 const root = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(root, "..");
 const distRoot = join(projectRoot, "dist");
+const manifestBase = JSON.parse(await readFile(join(projectRoot, "src/manifest.base.json"), "utf8"));
 
 const manifest = (browser) => ({
   manifest_version: 3,
   name: "ResumeAutoFiller",
   version: "0.1.0",
   description: "本地优先、只在用户主动操作时运行的网申资料填写工具。",
-  permissions: ["storage", "activeTab", "scripting"],
+  permissions: manifestBase.permissions,
   action: {
     default_title: "打开 ResumeAutoFiller",
     default_popup: "popup.html"
