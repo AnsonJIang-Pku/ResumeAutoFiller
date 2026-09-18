@@ -146,6 +146,7 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
     if (sessionDirty) return errorResponse("页面结构已经变化，请重新扫描后再确认");
     const match = session.matches.find((item) => item.descriptor.id === message.fieldId);
     if (!match) return errorResponse("字段已经变化，请重新扫描");
+    if (match.decision !== "SUGGEST") return errorResponse("只有建议字段可以逐项确认");
     const singlePage: PageMatchResult = {
       ...session,
       matches: [match],

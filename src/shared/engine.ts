@@ -44,11 +44,12 @@ function resultForMatch(match: FieldMatch, status: FillResult["status"], reason:
 function executeOne(match: FieldMatch, field: ScannedField, profile: ResumeProfile, options: ExecuteOptions): FillResult {
   if (!match.candidate) return resultForMatch(match, "NO_MATCH", "没有足够可靠的资料匹配");
   if (!field.element.isConnected) return resultForMatch(match, "FAILED", "页面结构已变化，字段已脱离文档，请重新扫描");
+  if (match.decision === "ABSTAIN") return resultForMatch(match, "UNCERTAIN", match.reason === "LOW_CONFIDENCE" ? "置信度不足，未自动填写" : "没有可靠匹配");
+  if (match.decision === "MANUAL") return resultForMatch(match, "MANUAL_REQUIRED", "该控件必须人工处理");
   if (match.decision === "EXISTING" && !options.overwriteExisting) return resultForMatch(match, "SKIPPED", "已有内容，默认不覆盖");
   const eligibleAuto = match.decision === "AUTO" || (match.decision === "EXISTING" && options.overwriteExisting && match.score >= 80);
   if (options.autoOnly && !eligibleAuto) {
     if (match.decision === "SUGGEST") return resultForMatch(match, "UNCERTAIN", "中等置信度，等待用户确认");
-    if (match.decision === "ABSTAIN") return resultForMatch(match, "UNCERTAIN", match.reason === "LOW_CONFIDENCE" ? "置信度不足，未自动填写" : "没有可靠匹配");
     return resultForMatch(match, "MANUAL_REQUIRED", "需要人工处理");
   }
   if (match.decision === "SUGGEST" && !options.selectedFieldIds?.has(field.id)) return resultForMatch(match, "UNCERTAIN", "中等置信度，等待用户确认");

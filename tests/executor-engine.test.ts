@@ -75,6 +75,22 @@ describe("fill engine", () => {
     dom.window.close();
   });
 
+  it("cannot use the selected-suggestion path to override an abstained match", () => {
+    const dom = domFromHtml(`<!doctype html><label>姓名</label><input>`);
+    const profile = emptyProfile();
+    profile.basic.fullName = "Alice Example";
+    const fields = scanDocument(dom.window.document, "jobs.example.test");
+    const page = matchPage(dom.window.document, fields, profile);
+    const forcedAbstain = {
+      ...page,
+      matches: page.matches.map((match) => ({ ...match, decision: "ABSTAIN" as const, reason: "LOW_CONFIDENCE" as const }))
+    };
+    const report = executeMatches(forcedAbstain, profile, { overwriteExisting: false, selectedFieldIds: new Set(["rf-field-1"]) });
+    expect(report.results[0]?.status).toBe("UNCERTAIN");
+    expect((dom.window.document.querySelector("input") as HTMLInputElement).value).toBe("");
+    dom.window.close();
+  });
+
   it("reuses only an exact hostname and field fingerprint mapping", () => {
     const dom = domFromHtml(`<!doctype html><main><label>最高阶段毕业单位</label><input></main>`);
     const profile = emptyProfile();
