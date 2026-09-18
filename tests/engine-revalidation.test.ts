@@ -42,8 +42,8 @@ describe("live field revalidation", () => {
     const page = matchPage(dom.window.document, scanDocument(dom.window.document, "jobs.example.test"), profile);
     const report = executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
     expect(report.results[0]?.status).toBe("FAILED");
-    expect(report.results[0]?.reason).toContain("已恢复原值");
-    expect(dom.window.document.querySelector<HTMLInputElement>("#first")?.value).toBe("");
+    expect(report.results[0]?.reason).toContain("请人工检查");
+    expect(dom.window.document.querySelector<HTMLInputElement>("#first")?.value).toBe("Alice Example");
     dom.window.close();
   });
 });

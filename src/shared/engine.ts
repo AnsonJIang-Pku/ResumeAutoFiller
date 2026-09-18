@@ -84,7 +84,7 @@ function readActual(field: ScannedField): string {
 
 export function executeMatches(page: PageMatchResult, profile: ResumeProfile, options: ExecuteOptions): FillReport {
   const results: FillResult[] = [];
-  const successful = new Map<string, { match: FieldMatch; field: ScannedField; resultIndex: number; originalValue: string }>();
+  const successful = new Map<string, { match: FieldMatch; field: ScannedField; resultIndex: number }>();
   for (const match of page.matches) {
     const liveFields = page.document ? scanDocument(page.document, page.fields[0]?.hostname ?? page.document.location?.hostname ?? "local.page") : page.fields;
     const liveFieldsByElement = new Map(liveFields.map((field) => [field.element, field]));
@@ -106,7 +106,7 @@ export function executeMatches(page: PageMatchResult, profile: ResumeProfile, op
       if (!postEventField || postEventField.fingerprint !== match.descriptor.fingerprint) {
         results[results.length - 1] = resultForMatch(match, "FAILED", "填写事件改变了字段语义，请重新扫描");
       } else {
-        successful.set(field.id, { match, field, resultIndex: results.length - 1, originalValue: field.currentValue });
+        successful.set(field.id, { match, field, resultIndex: results.length - 1 });
       }
     }
     if (page.document && successful.size > 0) {
@@ -114,10 +114,7 @@ export function executeMatches(page: PageMatchResult, profile: ResumeProfile, op
       for (const [fieldId, state] of successful) {
         const current = currentFields.find((candidate) => candidate.element === state.field.element);
         if (current && current.fingerprint === state.match.descriptor.fingerprint) continue;
-        if (state.field.element.isConnected) {
-          try { fillElement(state.field.element, state.originalValue, true); } catch { /* The old control may already be gone; the failure remains explicit. */ }
-        }
-        results[state.resultIndex] = resultForMatch(state.match, "FAILED", "此前填写的字段语义在后续事件中发生变化，已恢复原值");
+        results[state.resultIndex] = resultForMatch(state.match, "FAILED", "此前填写的字段语义在后续事件中发生变化，未继续写入；请人工检查原字段");
         successful.delete(fieldId);
       }
     }
