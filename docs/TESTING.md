@@ -7,6 +7,7 @@ pnpm typecheck
 pnpm lint
 pnpm test
 pnpm test:coverage
+pnpm exec playwright install chromium  # 首次 E2E 运行前
 pnpm test:e2e
 pnpm privacy:audit
 pnpm build
@@ -21,7 +22,7 @@ pnpm build
 - 单元测试：Profile 稳定 ID、候选路径、normalize、mapping、matcher 分数、native setter、select、contenteditable、storage。
 - Fixture 集成测试：12 个虚构页面覆盖 native、Ant-like、Element-like、重复教育/项目、ARIA、contenteditable、select、安全过滤、动态字段、Shadow DOM 和复杂控件。
 - 构建内容脚本 E2E：在本机 Chrome 中加载真实构建的 `content.js`，通过消息边界扫描并填写 native fixture，验证结果回读和 overlay 后重复填写。
-- unpacked UI E2E：尝试通过 Playwright 加载 `dist/chrome`，验证真实 options/popup storage flow；如果当前 Chrome 自动化策略屏蔽扩展 service worker，则测试显式 skipped，不能伪称为通过。
+- unpacked UI E2E：通过 Playwright Chromium 加载 `dist/chrome`，验证真实 options/popup storage flow；如果没有可用浏览器或系统 Chrome 自动化策略屏蔽 service worker，测试会显式 skipped，不能伪称为通过。
 - 隐私审计：静态检查生产源代码和权限。
 
 ## 量化口径

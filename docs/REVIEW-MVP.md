@@ -15,4 +15,4 @@ MVP 审查基线为提交 `6640bcd`。按任务要求，审查被拆成两个相
 
 - Privacy / Security：PASS；无 BLOCKER/HIGH。
 - Browser Extension / Reliability：PASS；无 BLOCKER/HIGH。MEDIUM 为后挂 ShadowRoot、完全同构重复行和填写期间新增控件需要重扫；语义漂移会 fail closed 并要求人工检查。
-- Test / QA / Architecture：PASS；无 BLOCKER/HIGH。12 fixture / 39 eligible benchmark、V8 coverage、构建、隐私审计和 content E2E 均通过；unpacked MV3 UI E2E 在当前 Chrome 自动化环境中 skipped，手动 Load unpacked 路径仍需用户验收。
+- Test / QA / Architecture：PASS；无 BLOCKER/HIGH。12 fixture / 39 eligible benchmark、V8 coverage、构建、隐私审计和 content E2E 均通过；Playwright Chromium 的 unpacked MV3 UI E2E 也通过，验证了 options 保存 Profile 和 popup 读取本地数据。系统 Chrome 自动化可能屏蔽 service worker，测试对此有显式 fallback。

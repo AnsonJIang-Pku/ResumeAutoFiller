@@ -6,15 +6,17 @@ import { join, resolve } from "node:path";
 
 const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const extensionDir = resolve("dist/chrome");
+const bundledChromiumPath = chromium.executablePath();
+const testBrowserPath = existsSync(bundledChromiumPath) ? bundledChromiumPath : chromePath;
 
 test.describe("loaded MV3 extension UI", () => {
-  test.skip(!existsSync(chromePath) || !existsSync(join(extensionDir, "manifest.json")), "requires a local Chrome binary and a built extension");
+  test.skip(!existsSync(testBrowserPath) || !existsSync(join(extensionDir, "manifest.json")), "requires a local Chromium/Chrome binary and a built extension");
 
   test("persists a sample Profile through the real options page and reads it from popup", async () => {
     const userDataDir = await mkdtemp(join(tmpdir(), "resumeautofiller-e2e-"));
     const context = await chromium.launchPersistentContext(userDataDir, {
       headless: true,
-      executablePath: chromePath,
+      executablePath: testBrowserPath,
       ignoreDefaultArgs: ["--disable-extensions"],
       args: ["--no-sandbox", `--disable-extensions-except=${extensionDir}`, `--load-extension=${extensionDir}`]
     });
