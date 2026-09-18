@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ResumeAutoFiller</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="brand-row">
+        <div>
+          <p class="eyebrow">LOCAL ONLY</p>
+          <h1>ResumeAutoFiller</h1>
+        </div>
+        <button id="edit-profile" class="link-button" type="button">Profile</button>
+      </header>
+      <p id="profile-status" class="muted">正在读取本地 Profile…</p>
+      <label class="toggle-row">
+        <input id="overwrite-existing" type="checkbox" />
+        <span>允许覆盖已有内容（谨慎使用）</span>
+      </label>
+      <section class="action-grid" aria-label="操作">
+        <button id="scan-page" class="primary" type="button">扫描当前页面</button>
+        <button id="fill-high" type="button">填写高置信度</button>
+      </section>
+      <button id="review-suggestions" class="secondary full-width" type="button">查看建议字段</button>
+      <p id="status" class="status" role="status"></p>
+      <section id="summary" class="summary hidden" aria-live="polite"></section>
+      <section>
+        <h2>扫描结果</h2>
+        <ul id="match-list" class="match-list"></ul>
+      </section>
+      <footer>
+        <span>不会自动提交表单</span>
+        <button id="open-options" class="link-button" type="button">本地数据与映射</button>
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

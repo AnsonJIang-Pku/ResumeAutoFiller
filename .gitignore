@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+*.log
+
+# Local-only profile and browser artifacts. Never commit real personal data.
+tmp/
+local-data/
+profile.local.json
+profile*.local.json
+*.resume-profile.json
+*.resume-mapping.json
+
+# Tool output and local screenshots.
+playwright-report/
+test-results/
+
+# IDE files.
+.idea/
+.vscode/

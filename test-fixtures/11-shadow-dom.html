@@ -1,0 +1,4 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>Shadow DOM fixture</title></head><body>
+<h1>基本信息</h1><resume-shadow-field></resume-shadow-field>
+<script>const host = document.querySelector('resume-shadow-field'); const root = host.attachShadow({mode:'open'}); root.innerHTML = '<label for="shadow-phone">手机号</label><input id="shadow-phone" type="tel">';</script>
+</body></html>

@@ -1,0 +1,4 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>Dynamic fixture</title></head><body>
+<h1>教育经历</h1><div id="education"><label>学校</label><input name="education[0].school"></div><button id="add" type="button">添加教育经历</button>
+<script>document.querySelector('#add').addEventListener('click', () => { const row = document.createElement('div'); row.innerHTML = '<label>学校</label><input name="education[1].school">'; document.querySelector('#education').append(row); });</script>
+</body></html>

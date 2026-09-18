@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ResumeAutoFiller Profile</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="options-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">RESUMEAUTOFILLER · LOCAL PROFILE</p>
+          <h1>Profile 编辑器</h1>
+          <p class="intro">资料只保存在本浏览器的 <code>chrome.storage.local</code>。扩展不会上传、同步或自动提交。</p>
+        </div>
+        <div class="header-actions">
+          <button id="load-sample" type="button">载入虚构示例</button>
+          <button id="save-profile" class="primary" type="button">保存 Profile</button>
+        </div>
+      </header>
+      <p id="save-status" class="status" role="status"></p>
+      <section class="card">
+        <h2>基本信息</h2>
+        <p class="hint">身份证号属于敏感字段；如果填写，自动填写后仍必须人工复核。</p>
+        <div id="basic-fields" class="field-grid"></div>
+      </section>
+      <section class="card repeat-section">
+        <div class="section-heading"><div><h2>教育经历</h2><p class="hint">每条经历都有稳定 ID，调整顺序不会改变映射身份。</p></div><button data-add="education" type="button">新增教育经历</button></div>
+        <div id="education-list" class="entry-list"></div>
+      </section>
+      <section class="card repeat-section">
+        <div class="section-heading"><div><h2>项目经历</h2><p class="hint">项目字段按页面出现顺序与 Profile 条目对齐。</p></div><button data-add="projects" type="button">新增项目</button></div>
+        <div id="projects-list" class="entry-list"></div>
+      </section>
+      <section class="card repeat-section">
+        <div class="section-heading"><div><h2>科研 / 论文</h2></div><button data-add="research" type="button">新增科研经历</button></div>
+        <div id="research-list" class="entry-list"></div>
+      </section>
+      <section class="card repeat-section">
+        <div class="section-heading"><div><h2>获奖情况</h2></div><button data-add="awards" type="button">新增奖项</button></div>
+        <div id="awards-list" class="entry-list"></div>
+      </section>
+      <section class="card split-card">
+        <div class="repeat-section">
+          <div class="section-heading"><h2>语言能力</h2><button data-add="languages" type="button">新增</button></div>
+          <div id="languages-list" class="entry-list"></div>
+        </div>
+        <div class="repeat-section">
+          <div class="section-heading"><h2>技能</h2><button data-add="skills" type="button">新增</button></div>
+          <div id="skills-list" class="entry-list"></div>
+        </div>
+      </section>
+      <section class="card repeat-section">
+        <div class="section-heading"><div><h2>自定义字段</h2><p class="hint">只建议添加低风险、稳定标签的字段。</p></div><button data-add="customFields" type="button">新增自定义字段</button></div>
+        <div id="customFields-list" class="entry-list"></div>
+      </section>
+      <section class="card data-card">
+        <h2>本地数据管理</h2>
+        <div class="data-actions">
+          <button id="export-profile" type="button">导出 Profile JSON</button>
+          <button id="import-profile" type="button">导入 Profile JSON</button>
+          <button id="forget-mappings" type="button">清空全部映射记忆</button>
+          <button id="clear-local" class="danger" type="button">清空全部本地数据</button>
+        </div>
+        <input id="import-file" class="hidden" type="file" accept="application/json,.json" />
+        <p class="hint">导出和导入都由你主动触发，文件会留在本机；不要把含真实资料的导出文件提交到 Git。</p>
+      </section>
+      <footer><span>Chrome / Edge Chromium · 仅在用户主动点击后运行</span><span>不含云端服务 · 不含分析 · 不含 AI</span></footer>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
