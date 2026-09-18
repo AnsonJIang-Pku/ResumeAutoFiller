@@ -7,6 +7,7 @@ import type { FillReport, FieldMatch } from "../shared/types";
 let session: PageMatchResult | null = null;
 let sessionId = "";
 let sessionDirty = false;
+let suppressInternalMutations = false;
 let observer: MutationObserver | null = null;
 
 function toPublicMatch(match: FieldMatch): FieldMatch {
@@ -100,6 +101,7 @@ function installObserver(): void {
         if (node instanceof Element && node.shadowRoot) observeRoot(node.shadowRoot);
       }
     }
+    if (suppressInternalMutations) return;
     const pageChanged = records.some((record) => {
       if (isPluginNode(record.target)) return false;
       const onlyOverlayNodes = Array.from(record.addedNodes).length > 0 && Array.from(record.addedNodes).every(isPluginNode);
@@ -136,9 +138,14 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
   if (message.type === "FILL_HIGH_CONFIDENCE") {
     if (!session) return errorResponse("请先扫描当前页面");
     if (sessionDirty) return errorResponse("页面结构已经变化，请重新扫描后再填写");
-    const report = executeMatches(session, message.profile, { overwriteExisting: message.overwriteExisting, autoOnly: true });
-    showOverlay(report);
-    return { ok: true, report: toPublicReport(report) };
+    suppressInternalMutations = true;
+    try {
+      const report = executeMatches(session, message.profile, { overwriteExisting: message.overwriteExisting, autoOnly: true });
+      showOverlay(report);
+      return { ok: true, report: toPublicReport(report) };
+    } finally {
+      setTimeout(() => { suppressInternalMutations = false; }, 0);
+    }
   }
   if (message.type === "FILL_SELECTED_SUGGESTION") {
     if (!session) return errorResponse("请先扫描当前页面");
@@ -152,9 +159,14 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
       matches: [match],
       fields: session.fields.filter((field) => field.id === message.fieldId)
     };
-    const report = executeMatches(singlePage, message.profile, { overwriteExisting: message.overwriteExisting, selectedFieldIds: new Set([message.fieldId]) });
-    showOverlay(report);
-    return { ok: true, report: toPublicReport(report) };
+    suppressInternalMutations = true;
+    try {
+      const report = executeMatches(singlePage, message.profile, { overwriteExisting: message.overwriteExisting, selectedFieldIds: new Set([message.fieldId]) });
+      showOverlay(report);
+      return { ok: true, report: toPublicReport(report) };
+    } finally {
+      setTimeout(() => { suppressInternalMutations = false; }, 0);
+    }
   }
   return errorResponse("当前页面不支持此操作");
 }

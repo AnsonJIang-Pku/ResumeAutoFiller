@@ -5,4 +5,8 @@ MVP 审查基线为提交 `6640bcd`。按任务要求，审查被拆成两个相
 1. Privacy / Security Reviewer：检查权限、storage、网络、日志、XSS、Profile 泄露和 Git 忽略规则。
 2. Browser Extension / Reliability Reviewer：检查 scanner、label、setter、matcher、repeat、existing-value、动态 DOM、消息流和测试质量。
 
-审查者均直接读取仓库并可自行运行测试，不以实现者总结作为证据。最终报告会把 BLOCKER/HIGH 修复后重新记录在本文件和最终报告中；MEDIUM/LOW 会注明处置决定。
+审查者均直接读取仓库并可自行运行测试，不以实现者总结作为证据。
+
+初次审查发现并已修复的 HIGH：live DOM 语义漂移、短 alias 误匹配、未支持 input 类型、日期回读、Shadow DOM section、overlay observer 误报，以及 selected-suggestion 绕过 ABSTAIN。修复提交依次为 `3747756`、`bdf7d63`、`dc2b653`、`b054bf0`、`bcd922a`。
+
+最终复审结论将在当前发布候选 HEAD 上记录：Privacy/Security、Browser Extension/Reliability、Test/QA/Architecture 三方均需无 BLOCKER/HIGH；hostname-wide mapping、无法识别的后挂 ShadowRoot、完全同构的页面重复行和真实背景 action popup 在自动化环境中的限制会保留为明确的 MEDIUM/LOW 已知限制。

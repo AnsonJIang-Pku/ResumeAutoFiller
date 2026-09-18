@@ -95,10 +95,14 @@ function preserveId(value: unknown, prefix: string): string {
 
 function normalizeArray<T>(value: unknown, prefix: string, factory: () => T): T[] {
   if (!Array.isArray(value)) return [];
+  const usedIds = new Set<string>();
   return value.map((entry) => {
     const source = entry && typeof entry === "object" ? entry : {};
     const sourceRecord = source as Record<string, unknown>;
-    return { ...factory(), ...sourceRecord, id: preserveId(sourceRecord.id, prefix) } as T;
+    let id = preserveId(sourceRecord.id, prefix);
+    while (usedIds.has(id)) id = createStableId(prefix);
+    usedIds.add(id);
+    return { ...factory(), ...sourceRecord, id } as T;
   });
 }
 

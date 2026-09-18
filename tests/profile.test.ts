@@ -25,4 +25,11 @@ describe("profile schema", () => {
     ]);
     expect(candidates[1]?.value).toBe("本科示例大学");
   });
+
+  it("repairs duplicate imported repeat IDs without collapsing entries", () => {
+    const normalized = normalizeProfile({ education: [{ id: "duplicate", school: "第一所" }, { id: "duplicate", school: "第二所" }] });
+    expect(normalized.education).toHaveLength(2);
+    expect(normalized.education[0]?.id).not.toBe(normalized.education[1]?.id);
+    expect(normalized.education[1]?.school).toBe("第二所");
+  });
 });

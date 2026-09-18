@@ -62,6 +62,15 @@ function rootLabels(element: Element): HTMLLabelElement[] {
   return root.nodeType === 9 || root.nodeType === 11 ? Array.from((root as Document | ShadowRoot).querySelectorAll("label")) : [];
 }
 
+function nearestFormItem(element: Element): Element | null {
+  let current = element.parentElement;
+  for (let depth = 0; current && depth < 6; depth += 1, current = current.parentElement) {
+    const className = typeof current.className === "string" ? current.className : "";
+    if (/(^|\s)(?:[\w-]+-)?form[-_]?item(?:\s|$)/i.test(className) || /(^|\s)(?:[\w-]+-)?form[-_]?group(?:\s|$)/i.test(className) || /(^|\s)(?:[\w-]+-)?field[-_]?group(?:\s|$)/i.test(className)) return current;
+  }
+  return null;
+}
+
 function nearbyLabel(element: Element): string {
   const values: string[] = [];
   const explicitLabels = "labels" in element ? (element as HTMLInputElement).labels : null;
@@ -75,7 +84,7 @@ function nearbyLabel(element: Element): string {
   }
   pushUnique(values, element.closest("label")?.textContent);
 
-  const formItem = element.closest("[class*='form-item'], [class*='form_item'], [class*='form-group'], [class*='form_group'], [class*='field-group'], [role='group']");
+  const formItem = nearestFormItem(element) ?? element.closest("[role='group']");
   if (formItem) {
     pushUnique(values, formItem.querySelector("label, .label, [class*='label']")?.textContent);
     const firstText = Array.from(formItem.childNodes)

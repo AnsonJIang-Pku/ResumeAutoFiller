@@ -10,10 +10,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "pnpm build && playwright test",
     "privacy:audit": "node scripts/privacy-audit.mjs",
-    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm privacy:audit"
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:coverage && pnpm build && pnpm privacy:audit"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -23,6 +24,7 @@
     "@types/node": "^22.10.2",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "esbuild": "^0.24.2",
     "eslint": "^9.17.0",
     "jsdom": "^25.0.1",

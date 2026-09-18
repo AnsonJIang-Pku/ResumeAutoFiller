@@ -2,14 +2,14 @@ import { compactText, normalizeText } from "./normalize";
 import type { FillResult, FormElement, ScannedField } from "./types";
 
 function dispatchValueEvents(element: FormElement): void {
-  const document = element.ownerDocument;
+  if (typeof element.focus === "function") element.focus();
   const inputEvent = typeof InputEvent === "function"
     ? new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: null })
     : new Event("input", { bubbles: true, composed: true });
   element.dispatchEvent(inputEvent);
   element.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
-  element.dispatchEvent(new Event("blur", { bubbles: true, composed: true }));
-  void document;
+  if (typeof element.blur === "function") element.blur();
+  else element.dispatchEvent(new Event("blur", { bubbles: true, composed: true }));
 }
 
 function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement, value: string): void {

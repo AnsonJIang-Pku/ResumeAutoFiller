@@ -12,10 +12,10 @@ describe("DOM executor and verification", () => {
     const input = dom.window.document.querySelector("input");
     if (!input) throw new Error("input missing");
     const events: string[] = [];
-    for (const name of ["input", "change", "blur"]) input.addEventListener(name, () => events.push(name));
+    for (const name of ["focus", "input", "change", "blur", "focusout"]) input.addEventListener(name, () => events.push(name));
     fillElement(input, "Alice Example");
     expect(input.value).toBe("Alice Example");
-    expect(events).toEqual(["input", "change", "blur"]);
+    expect(events).toEqual(["focus", "input", "change", "blur", "focusout"]);
     expect(verifyElement(input, "Alice Example")).toBe(true);
     dom.window.close();
   });
@@ -70,7 +70,7 @@ describe("fill engine", () => {
     const page = matchPage(dom.window.document, fields, profile);
     const report = executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
     expect(report.results.find((result) => result.label === "姓名")?.status).toBe("FILLED");
-    expect(report.results.find((result) => result.label === "自定义问题")?.status).toBe("NO_MATCH");
+    expect(report.results.find((result) => result.label === "自定义问题")?.status).toBe("UNCERTAIN");
     expect((dom.window.document.querySelectorAll("input")[1] as HTMLInputElement).value).toBe("");
     dom.window.close();
   });
