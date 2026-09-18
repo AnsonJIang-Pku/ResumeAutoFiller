@@ -79,24 +79,34 @@ function showOverlay(report: FillReport): void {
 
 function installObserver(): void {
   observer?.disconnect();
-  observer = new MutationObserver((records) => {
-    const pageChanged = records.some((record) => {
-      if (record.target instanceof Element && record.target.closest("[data-resume-autofiller-root='true']")) return false;
-      const onlyOverlayNodes = Array.from(record.addedNodes).length > 0 && Array.from(record.addedNodes).every((node) => node instanceof Element && node.matches("[data-resume-autofiller-root='true']"));
-      return !onlyOverlayNodes;
-    });
-    if (pageChanged) sessionDirty = true;
-  });
   const observerOptions: MutationObserverInit = {
     childList: true,
     subtree: true,
     attributes: true,
     attributeFilter: ["value", "disabled", "class", "style", "id", "name", "type", "role", "hidden", "aria-hidden", "aria-label", "aria-labelledby", "readonly", "aria-readonly", "placeholder", "required"]
   };
+  const isPluginNode = (node: Node): boolean => {
+    if (node instanceof Element && node.closest("[data-resume-autofiller-root='true']")) return true;
+    const root = node.getRootNode();
+    return root.nodeType === 11 && Boolean((root as ShadowRoot).host.closest("[data-resume-autofiller-root='true']"));
+  };
   const observeRoot = (root: Document | ShadowRoot): void => {
     observer?.observe(root, observerOptions);
     for (const element of Array.from(root.querySelectorAll("*"))) if (element.shadowRoot) observeRoot(element.shadowRoot);
   };
+  observer = new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of Array.from(record.addedNodes)) {
+        if (node instanceof Element && node.shadowRoot) observeRoot(node.shadowRoot);
+      }
+    }
+    const pageChanged = records.some((record) => {
+      if (isPluginNode(record.target)) return false;
+      const onlyOverlayNodes = Array.from(record.addedNodes).length > 0 && Array.from(record.addedNodes).every(isPluginNode);
+      return !onlyOverlayNodes;
+    });
+    if (pageChanged) sessionDirty = true;
+  });
   observeRoot(document);
 }
 

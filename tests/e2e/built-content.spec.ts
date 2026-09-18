@@ -64,6 +64,12 @@ test.describe("built content script in Chromium", () => {
     expect(fill.ok).toBe(true);
     expect(await page.locator("#name").inputValue()).toBe("Alice Example");
     expect(await page.locator("#email").inputValue()).toBe("alice@example.com");
+    const repeatFill = await page.evaluate((currentProfile) => new Promise<Record<string, unknown>>((resolve) => {
+      const listener = (window as Window & { __rafMessage?: (message: unknown, sender: unknown, callback: (response: unknown) => void) => void }).__rafMessage;
+      if (!listener) throw new Error("content listener was not installed");
+      listener({ type: "FILL_HIGH_CONFIDENCE", profile: currentProfile, overwriteExisting: true }, {}, (response) => resolve(structuredClone(response) as Record<string, unknown>));
+    }), profile);
+    expect(repeatFill.ok).toBe(true);
     await browser.close();
   });
 });
