@@ -73,7 +73,11 @@ async function handleMessage(message: ExtensionMessage): Promise<ScanResponse | 
   return response;
 }
 
-chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
+  if (sender.id && sender.id !== chrome.runtime.id) {
+    sendResponse({ ok: false, error: "拒绝非本扩展消息" });
+    return false;
+  }
   void handleMessage(message)
     .then((response) => sendResponse(response))
     .catch((error: unknown) => sendResponse({ ok: false, error: publicError(error) }));
