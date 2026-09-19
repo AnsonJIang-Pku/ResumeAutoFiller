@@ -32,4 +32,18 @@ describe("profile schema", () => {
     expect(normalized.education[0]?.id).not.toBe(normalized.education[1]?.id);
     expect(normalized.education[1]?.school).toBe("第二所");
   });
+
+  it("keeps custom field mapping keys stable when custom fields are reordered", () => {
+    const profile = emptyProfile();
+    profile.customFields = [
+      { id: "custom-school", label: "申请学校", value: "虚构大学" },
+      { id: "custom-city", label: "申请城市", value: "示例市" }
+    ];
+    const reordered = { ...profile, customFields: [profile.customFields[1]!, profile.customFields[0]!] };
+    expect(buildProfileCandidates(reordered).filter((candidate) => candidate.section === "custom").map((candidate) => candidate.profileKey)).toEqual([
+      "customFields.custom-city.value",
+      "customFields.custom-school.value"
+    ]);
+    expect(resolveProfileValue(reordered, "customFields.custom-school.value")).toBe("虚构大学");
+  });
 });

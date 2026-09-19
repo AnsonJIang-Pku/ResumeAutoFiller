@@ -9,7 +9,8 @@ const CONTROL_SELECTOR = [
   "[contenteditable]:not([contenteditable='false'])",
   "[role='textbox']",
   "[role='combobox']",
-  "[role='spinbutton']"
+  "[role='spinbutton']",
+  "[aria-haspopup='listbox']"
 ].join(",");
 
 const SECTION_PATTERNS: Array<[string, RegExp]> = [
@@ -134,9 +135,9 @@ function composedParent(element: Element): Element | null {
 
 function capabilityFor(element: Element): FieldCapability {
   const role = element.getAttribute("role");
-  if (["combobox", "spinbutton", "slider", "button", "checkbox", "radio"].includes(role ?? "")) return "unsupported";
+  if (["spinbutton", "slider", "button", "checkbox", "radio"].includes(role ?? "")) return "unsupported";
+  if (role === "combobox" || element.getAttribute("aria-haspopup") === "listbox") return "select";
   if (element instanceof HTMLSelectElement) return element.multiple ? "unsupported" : "select";
-  if (element.getAttribute("role") === "combobox") return "select";
   if (element instanceof HTMLTextAreaElement) return "textarea";
   const contenteditable = element.getAttribute("contenteditable");
   if (contenteditable !== null && contenteditable !== "false") return "contenteditable";
@@ -150,6 +151,9 @@ function capabilityFor(element: Element): FieldCapability {
 
 function currentValue(element: Element): string {
   if (element instanceof HTMLInputElement && element.type === "password") return "";
+  if (element.getAttribute("role") === "combobox" || element.getAttribute("aria-haspopup") === "listbox") {
+    return element.getAttribute("aria-valuetext") || element.getAttribute("data-value") || (element instanceof HTMLInputElement ? element.value : "");
+  }
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) return element.value;
   return element.textContent?.trim() ?? "";
 }
@@ -158,6 +162,7 @@ function fieldType(element: Element): string {
   if (element instanceof HTMLInputElement) return element.type || "text";
   if (element instanceof HTMLTextAreaElement) return "textarea";
   if (element instanceof HTMLSelectElement) return element.multiple ? "select-multiple" : "select";
+  if (element.getAttribute("role") === "combobox" || element.getAttribute("aria-haspopup") === "listbox") return "combobox";
   if (element.getAttribute("contenteditable") !== null && element.getAttribute("contenteditable") !== "false") return "contenteditable";
   return element.getAttribute("role") || (element.getAttribute("contenteditable") === "true" ? "contenteditable" : element.tagName.toLowerCase());
 }

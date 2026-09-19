@@ -13,8 +13,10 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "pnpm build && playwright test",
+    "verify:e2e": "node scripts/e2e-gate.mjs",
     "privacy:audit": "node scripts/privacy-audit.mjs",
-    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:coverage && pnpm build && pnpm privacy:audit"
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:coverage && pnpm build && pnpm privacy:audit",
+    "verify": "node scripts/verify.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

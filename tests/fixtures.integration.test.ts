@@ -18,7 +18,13 @@ const fixtureNames = [
   "09-hidden-disabled-fields.html",
   "10-dynamic-fields.html",
   "11-shadow-dom.html",
-  "12-complex-controls.html"
+  "12-complex-controls.html",
+  "13-ant-select.html",
+  "14-element-select.html",
+  "15-portal-dropdown.html",
+  "16-ambiguous-dropdown.html",
+  "17-repeat-research.html",
+  "18-suggestion-correction.html"
 ];
 
 describe("fixture integration matrix", () => {
@@ -56,7 +62,7 @@ describe("fixture integration matrix", () => {
     const nativeDom = domFromHtml(nativeHtml, "https://fixture.example.test/native");
     const nativeFields = scanDocument(nativeDom.window.document, "fixture.example.test");
     const nativePage = matchPage(nativeDom.window.document, nativeFields, profile);
-    const nativeReport = executeMatches(nativePage, profile, { overwriteExisting: false, autoOnly: true });
+    const nativeReport = await executeMatches(nativePage, profile, { overwriteExisting: false, autoOnly: true });
     expect(nativeReport.results.filter((result) => result.status === "FILLED").length).toBe(5);
     expect(nativeDom.window.document.querySelector<HTMLInputElement>("#name")?.value).toBe("Alice Example");
     expect(nativeDom.window.document.querySelector<HTMLInputElement>("#email")?.value).toBe("alice@example.com");
@@ -67,9 +73,21 @@ describe("fixture integration matrix", () => {
     const repeatFields = scanDocument(repeatDom.window.document, "fixture.example.test");
     expect(matchFields(repeatFields, profile).filter((match) => match.decision === "AUTO").length).toBe(9);
     const repeatPage = matchPage(repeatDom.window.document, repeatFields, profile);
-    const repeatReport = executeMatches(repeatPage, profile, { overwriteExisting: false, autoOnly: true });
+    const repeatReport = await executeMatches(repeatPage, profile, { overwriteExisting: false, autoOnly: true });
     expect(repeatReport.results.filter((result) => result.status === "FILLED").length).toBe(9);
     expect(Array.from(repeatDom.window.document.querySelectorAll<HTMLInputElement>("input[name$='.school']")).map((input) => input.value)).toEqual(["本科示例大学", "硕士示例大学", "博士示例大学"]);
     repeatDom.window.close();
+
+    profile.research = [
+      { id: "research-1", name: "示例研究一", role: "", venue: "", startDate: "", endDate: "", link: "", description: "" },
+      { id: "research-2", name: "示例研究二", role: "", venue: "", startDate: "", endDate: "", link: "", description: "" }
+    ];
+    const researchHtml = await readFile(new URL("../test-fixtures/17-repeat-research.html", import.meta.url), "utf8");
+    const researchDom = domFromHtml(researchHtml, "https://fixture.example.test/research");
+    const researchPage = matchPage(researchDom.window.document, scanDocument(researchDom.window.document, "fixture.example.test"), profile);
+    const researchReport = await executeMatches(researchPage, profile, { overwriteExisting: false, autoOnly: true });
+    expect(researchReport.results.filter((result) => result.status === "FILLED").length).toBe(2);
+    expect(Array.from(researchDom.window.document.querySelectorAll<HTMLInputElement>("input[name$='.name']")).map((input) => input.value)).toEqual(["示例研究一", "示例研究二"]);
+    researchDom.window.close();
   });
 });

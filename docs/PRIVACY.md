@@ -26,6 +26,7 @@ createdAt / updatedAt
 ```
 
 mapping 不记录 field value、完整 URL、query string 或页面正文。源码不会把 Profile 写入 URL、Git、日志或网络请求。
+fingerprint 是本地同步 128-bit hash，用于页面结构相等性判断，不是身份凭据，也不会上传。
 
 ## 页面安全
 
@@ -37,7 +38,7 @@ mapping 不记录 field value、完整 URL、query string 或页面正文。源�
 pnpm privacy:audit
 ```
 
-该审计会检查生产 `src/` 是否出现 fetch、XHR、WebSocket、EventSource、sendBeacon、sync storage、analytics/telemetry/Sentry 或 `console.log`，并核对 Manifest 权限白名单。测试页面可以包含动态 DOM 代码；它们不属于扩展生产代码。
+该审计会检查生产 `src/` 和构建产物是否出现 fetch、XHR、WebSocket、EventSource、sendBeacon、sync storage、analytics/telemetry/Sentry 或 `console.log`，并核对 Manifest 权限白名单、`host_permissions`、`optional_host_permissions`、`externally_connectable`、CSP 远程 origin 和 web-accessible resource 的远程匹配规则。测试页面可以包含动态 DOM 代码；它们不属于扩展生产代码。
 
 ## 用户责任
 

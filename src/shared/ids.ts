@@ -6,10 +6,14 @@ export function createStableId(prefix: string): string {
 }
 
 export function hashFingerprint(value: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+  const seeds = [2166136261, 305419896, 3735928559, 2271560481];
+  const hashes = seeds.map((seed, seedIndex) => {
+    let hash = seed;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index) + seedIndex;
+      hash = Math.imul(hash, 16777619 + seedIndex * 2);
+    }
+    return (hash >>> 0).toString(16).padStart(8, "0");
+  });
+  return `fnv1a128-${hashes.join("")}`;
 }

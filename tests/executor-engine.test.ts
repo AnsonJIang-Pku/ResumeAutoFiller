@@ -76,20 +76,20 @@ describe("DOM executor and verification", () => {
 });
 
 describe("fill engine", () => {
-  it("returns a readable report and does not fill suggestions automatically", () => {
+  it("returns a readable report and does not fill suggestions automatically", async () => {
     const dom = domFromHtml(`<!doctype html><main><label>姓名</label><input><label>自定义问题</label><input></main>`);
     const profile = emptyProfile();
     profile.basic.fullName = "Alice Example";
     const fields = scanDocument(dom.window.document, "jobs.example.test");
     const page = matchPage(dom.window.document, fields, profile);
-    const report = executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
+    const report = await executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
     expect(report.results.find((result) => result.label === "姓名")?.status).toBe("FILLED");
     expect(report.results.find((result) => result.label === "自定义问题")?.status).toBe("UNCERTAIN");
     expect((dom.window.document.querySelectorAll("input")[1] as HTMLInputElement).value).toBe("");
     dom.window.close();
   });
 
-  it("cannot use the selected-suggestion path to override an abstained match", () => {
+  it("cannot use the selected-suggestion path to override an abstained match", async () => {
     const dom = domFromHtml(`<!doctype html><label>姓名</label><input>`);
     const profile = emptyProfile();
     profile.basic.fullName = "Alice Example";
@@ -99,13 +99,13 @@ describe("fill engine", () => {
       ...page,
       matches: page.matches.map((match) => ({ ...match, decision: "ABSTAIN" as const, reason: "LOW_CONFIDENCE" as const }))
     };
-    const report = executeMatches(forcedAbstain, profile, { overwriteExisting: false, selectedFieldIds: new Set(["rf-field-1"]) });
+    const report = await executeMatches(forcedAbstain, profile, { overwriteExisting: false, selectedFieldIds: new Set(["rf-field-1"]) });
     expect(report.results[0]?.status).toBe("UNCERTAIN");
     expect((dom.window.document.querySelector("input") as HTMLInputElement).value).toBe("");
     dom.window.close();
   });
 
-  it("revalidates each later field after an earlier field event rerenders the form", () => {
+  it("revalidates each later field after an earlier field event rerenders the form", async () => {
     const dom = domFromHtml(`<!doctype html><main><label>姓名</label><input id="first"><label>邮箱</label><input id="second" type="email"></main>`);
     const profile = emptyProfile();
     profile.basic.fullName = "Alice Example";
@@ -119,7 +119,7 @@ describe("fill engine", () => {
       dom.window.document.querySelector("#second")?.replaceWith(replacement);
     }, { once: true });
     const page = matchPage(dom.window.document, scanDocument(dom.window.document, "jobs.example.test"), profile);
-    const report = executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
+    const report = await executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
     expect(report.results[0]?.status).toBe("FILLED");
     expect(report.results[1]?.status).toBe("FAILED");
     expect(dom.window.document.querySelector<HTMLInputElement>("#second")?.value).toBe("");

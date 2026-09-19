@@ -1,7 +1,7 @@
-import { mappingForField, upsertMapping } from "../shared/mapping";
+import { forgetAllMappings, forgetMapping, mappingsAfterSuccessfulReport } from "../shared/mapping";
 import type { ExtensionMessage, FillResponse, ScanResponse, StatusResponse } from "../shared/messages";
 import { loadMappings, loadProfile, loadSettings, localStorageArea, saveMappings, saveSettings } from "../shared/storage";
-import type { FieldMapping, FillReport, FieldDescriptor } from "../shared/types";
+import type { FieldMapping, FillReport } from "../shared/types";
 
 async function activeTabId(): Promise<number> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -30,11 +30,7 @@ function publicError(error: unknown): string {
 }
 
 async function saveConfirmedMapping(report: FillReport, mappings: FieldMapping[]): Promise<void> {
-  let next = mappings;
-  for (const result of report.results) {
-    if (result.status !== "FILLED" || !result.profileKey || !result.descriptor) continue;
-    next = upsertMapping(next, mappingForField(result.descriptor as FieldDescriptor, result.profileKey));
-  }
+  const next = mappingsAfterSuccessfulReport(mappings, report);
   if (next !== mappings) await saveMappings(next);
 }
 
@@ -54,8 +50,13 @@ async function handleMessage(message: ExtensionMessage): Promise<ScanResponse | 
   }
   if (message.type === "FORGET_MAPPINGS") {
     const mappings = await loadMappings(area);
-    const next = message.hostname ? mappings.filter((mapping) => mapping.hostname !== message.hostname) : [];
+    const next = message.hostname ? mappings.filter((mapping) => mapping.hostname !== message.hostname) : forgetAllMappings();
     await saveMappings(next, area);
+    return { ok: true };
+  }
+  if (message.type === "FORGET_MAPPING") {
+    const mappings = await loadMappings(area);
+    await saveMappings(forgetMapping(mappings, message.mappingId), area);
     return { ok: true };
   }
   if (message.type === "SCAN_PAGE") {

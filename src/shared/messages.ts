@@ -3,9 +3,10 @@ import type { FieldMapping, FieldMatch, FillReport, ResumeProfile, StoredSetting
 export type ExtensionMessage =
   | { type: "SCAN_PAGE"; profile: ResumeProfile; mappings: FieldMapping[] }
   | { type: "FILL_HIGH_CONFIDENCE"; profile: ResumeProfile; overwriteExisting: boolean }
-  | { type: "FILL_SELECTED_SUGGESTION"; profile: ResumeProfile; fieldId: string; sessionId: string; overwriteExisting: boolean }
+  | { type: "FILL_SELECTED_SUGGESTION"; profile: ResumeProfile; fieldId: string; sessionId: string; profileKey?: string; overwriteExisting: boolean }
   | { type: "GET_STATUS" }
   | { type: "SAVE_SETTINGS"; settings: StoredSettings }
+  | { type: "FORGET_MAPPING"; mappingId: string }
   | { type: "FORGET_MAPPINGS"; hostname?: string }
   | { type: "CLEAR_LOCAL_DATA" };
 

@@ -1,11 +1,23 @@
 import type { ExtensionMessage, FillResponse, PublicMatch, ScanResponse, StatusResponse } from "../shared/messages";
 import type { FillReport, ResumeProfile, StoredSettings } from "../shared/types";
 import { maskSensitiveValue } from "../shared/normalize";
+import { buildProfileCandidates } from "../shared/profile";
 
 let profile: ResumeProfile;
 let settings: StoredSettings = { overwriteExisting: false };
 let matches: PublicMatch[] = [];
 let sessionId = "";
+
+const PROFILE_SECTION_LABELS: Record<string, string> = {
+  basic: "基本信息",
+  education: "教育经历",
+  projects: "项目经历",
+  research: "科研 / 论文",
+  awards: "获奖情况",
+  languages: "语言能力",
+  skills: "技能",
+  custom: "自定义字段"
+};
 
 const byId = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -58,12 +70,63 @@ function renderMatches(): void {
     state.textContent = decisionLabel(match);
     row.append(state);
     if (match.decision === "SUGGEST") {
+      const actions = document.createElement("div");
+      actions.className = "suggest-actions";
       const confirm = document.createElement("button");
       confirm.className = "confirm-button";
       confirm.type = "button";
       confirm.textContent = "确认";
-      confirm.addEventListener("click", () => void confirmSuggestion(match.descriptor.id, confirm));
-      row.append(confirm);
+      const change = document.createElement("button");
+      change.className = "confirm-button";
+      change.type = "button";
+      change.textContent = "改映射";
+      const ignore = document.createElement("button");
+      ignore.className = "ignore-button";
+      ignore.type = "button";
+      ignore.textContent = "忽略";
+      const select = document.createElement("select");
+      select.className = "profile-select hidden";
+      select.setAttribute("aria-label", "选择其他 Profile 字段");
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "选择其他 Profile 字段";
+      select.append(placeholder);
+      const groups = new Map<string, HTMLOptGroupElement>();
+      for (const candidate of buildProfileCandidates(profile).filter((item) => item.value.trim())) {
+        let group = groups.get(candidate.section);
+        if (!group) {
+          group = document.createElement("optgroup");
+          group.label = PROFILE_SECTION_LABELS[candidate.section] ?? candidate.section;
+          groups.set(candidate.section, group);
+          select.append(group);
+        }
+        const option = document.createElement("option");
+        option.value = candidate.profileKey;
+        option.textContent = candidate.displayName;
+        group.append(option);
+      }
+      change.addEventListener("click", () => {
+        select.classList.remove("hidden");
+        change.classList.add("hidden");
+        confirm.textContent = "确认映射";
+      });
+      confirm.addEventListener("click", () => {
+        if (!select.classList.contains("hidden") && !select.value) {
+          setStatus("请选择一个 Profile 字段后再确认。", true);
+          return;
+        }
+        void confirmSuggestion(match.descriptor.id, select.value || undefined, actions);
+      });
+      ignore.addEventListener("click", () => {
+        match.decision = "ABSTAIN";
+        match.reason = "LOW_CONFIDENCE";
+        state.textContent = "已忽略";
+        state.className = "match-state abstain";
+        actions.remove();
+        setStatus("已忽略这条建议；本次不会填写，也不会保存 mapping。 ");
+      });
+      actions.append(confirm, change, ignore, select);
+      row.append(actions);
     }
     matchList.append(row);
   }
@@ -136,11 +199,11 @@ async function fillHighConfidence(): Promise<void> {
   renderReport(response.report);
 }
 
-async function confirmSuggestion(fieldId: string, button: HTMLButtonElement): Promise<void> {
-  button.disabled = true;
-  const response = await send<FillResponse>({ type: "FILL_SELECTED_SUGGESTION", profile, fieldId, sessionId, overwriteExisting: settings.overwriteExisting });
+async function confirmSuggestion(fieldId: string, profileKey: string | undefined, control: HTMLElement): Promise<void> {
+  for (const button of Array.from(control.querySelectorAll<HTMLButtonElement>("button"))) button.disabled = true;
+  const response = await send<FillResponse>({ type: "FILL_SELECTED_SUGGESTION", profile, fieldId, sessionId, profileKey, overwriteExisting: settings.overwriteExisting });
   if (!response.ok || !response.report) {
-    button.disabled = false;
+    for (const button of Array.from(control.querySelectorAll<HTMLButtonElement>("button"))) button.disabled = false;
     setStatus(response.error ?? "建议字段填写失败", true);
     return;
   }
@@ -149,10 +212,10 @@ async function confirmSuggestion(fieldId: string, button: HTMLButtonElement): Pr
   const match = matches.find((item) => item.descriptor.id === fieldId);
   if (result?.status === "FILLED") {
     if (match) match.decision = "EXISTING";
-    button.remove();
+    control.remove();
     setStatus("已记录这次用户确认的字段映射；未来仅在页面指纹完全一致时复用。请继续检查页面。 ");
   } else {
-    button.disabled = false;
+    for (const button of Array.from(control.querySelectorAll<HTMLButtonElement>("button"))) button.disabled = false;
     setStatus(`这次建议没有成功填写：${result?.reason ?? "请重新扫描"}`, true);
   }
 }

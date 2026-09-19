@@ -158,7 +158,9 @@ export type MatchReason =
   | "FILE_UPLOAD"
   | "CHECKBOX_OR_RADIO"
   | "READONLY"
-  | "SENSITIVE_REVIEW";
+  | "SENSITIVE_REVIEW"
+  | "AMBIGUOUS_OPTION"
+  | "SESSION_STALE";
 
 export interface FieldMatch {
   descriptor: FieldDescriptor;
@@ -206,8 +208,32 @@ export interface FieldMapping {
   hostname: string;
   fingerprint: string;
   profileKey: ProfileKey;
+  fieldLabel?: string;
+  fieldName?: string;
+  fieldSection?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OptionDescriptor {
+  label: string;
+  value: string;
+  selected: boolean;
+  element: HTMLElement;
+}
+
+export type SelectResultStatus = "FILLED" | "MANUAL_REQUIRED" | "FAILED";
+
+export interface SelectResult {
+  status: SelectResultStatus;
+  reason: string;
+  actual?: string;
+}
+
+export interface SelectDriver {
+  id: string;
+  canHandle(element: HTMLElement): boolean;
+  select(element: HTMLElement, expected: string): Promise<SelectResult>;
 }
 
 export interface StoredSettings {

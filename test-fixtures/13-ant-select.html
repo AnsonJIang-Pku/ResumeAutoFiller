@@ -1,0 +1,6 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>Ant Select fixture</title></head><body>
+<main><h1>教育经历</h1><div class="ant-form-item"><label>学历</label><div class="ant-select" role="combobox" aria-expanded="false"><div class="ant-select-selector"><span class="ant-select-selection-placeholder">请选择</span></div></div></div></main>
+<script>
+const control=document.querySelector('.ant-select');
+control.addEventListener('click',()=>{ if(document.querySelector('.ant-select-dropdown'))return; control.setAttribute('aria-expanded','true'); const menu=document.createElement('div'); menu.className='ant-select-dropdown'; ['本科','硕士','博士'].forEach(label=>{const option=document.createElement('div'); option.className='ant-select-item-option'; option.setAttribute('role','option'); option.setAttribute('aria-selected','false'); option.textContent=label; option.addEventListener('click',()=>{document.querySelector('.ant-select-selection-placeholder').textContent=label; option.setAttribute('aria-selected','true'); control.setAttribute('aria-valuetext',label); control.setAttribute('aria-expanded','false'); menu.remove();}); menu.append(option);}); document.body.append(menu);});
+</script></body></html>

@@ -44,6 +44,9 @@ function fillSelect(element: HTMLSelectElement, expected: string): void {
 }
 
 function readValue(element: FormElement): string {
+  if (element.getAttribute("role") === "combobox" || element.getAttribute("aria-haspopup") === "listbox") {
+    return element.getAttribute("aria-valuetext") || element.getAttribute("data-value") || (element instanceof HTMLInputElement ? element.value : "");
+  }
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) return element.value;
   return element.textContent?.trim() ?? "";
 }

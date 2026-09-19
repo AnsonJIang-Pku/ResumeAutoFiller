@@ -1,5 +1,5 @@
 import { createStableId } from "./ids";
-import type { FieldDescriptor, FieldMapping, ProfileKey } from "./types";
+import type { FieldDescriptor, FieldMapping, FillReport, ProfileKey } from "./types";
 
 export function mappingForField(field: FieldDescriptor, profileKey: ProfileKey, now = new Date().toISOString()): FieldMapping {
   return {
@@ -7,6 +7,9 @@ export function mappingForField(field: FieldDescriptor, profileKey: ProfileKey, 
     hostname: field.hostname,
     fingerprint: field.fingerprint,
     profileKey,
+    fieldLabel: field.label,
+    fieldName: field.name,
+    fieldSection: field.section,
     createdAt: now,
     updatedAt: now
   };
@@ -23,4 +26,26 @@ export function upsertMapping(existing: FieldMapping[], next: FieldMapping): Fie
 
 export function forgetMappingsForHost(existing: FieldMapping[], hostname: string): FieldMapping[] {
   return existing.filter((mapping) => mapping.hostname !== hostname);
+}
+
+export function forgetMapping(existing: FieldMapping[], mappingId: string): FieldMapping[] {
+  return existing.filter((mapping) => mapping.id !== mappingId);
+}
+
+export function forgetAllMappings(): FieldMapping[] {
+  return [];
+}
+
+/**
+ * Only a result that made it through the executor's post-fill verification can
+ * create memory. Failed, skipped, uncertain, and manual results deliberately
+ * leave the existing list untouched.
+ */
+export function mappingsAfterSuccessfulReport(existing: FieldMapping[], report: FillReport, now = new Date().toISOString()): FieldMapping[] {
+  let next = existing;
+  for (const result of report.results) {
+    if (result.status !== "FILLED" || !result.profileKey || !result.descriptor) continue;
+    next = upsertMapping(next, mappingForField(result.descriptor as FieldDescriptor, result.profileKey, now));
+  }
+  return next;
 }

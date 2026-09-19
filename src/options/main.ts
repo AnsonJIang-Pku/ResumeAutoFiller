@@ -1,6 +1,7 @@
 import { emptyAward, emptyCustomField, emptyEducation, emptyLanguage, emptyProfile, emptyProject, emptyResearch, emptySkill, normalizeProfile } from "../shared/profile";
-import { loadProfile, localStorageArea, saveProfile } from "../shared/storage";
-import type { ProfileCollection, ResumeProfile } from "../shared/types";
+import { buildProfileCandidates } from "../shared/profile";
+import { loadMappings, loadProfile, localStorageArea, saveProfile } from "../shared/storage";
+import type { FieldMapping, ProfileCollection, ResumeProfile } from "../shared/types";
 
 interface FieldSpec {
   key: string;
@@ -119,6 +120,19 @@ const byId = <T extends HTMLElement>(id: string): T => {
 };
 
 const statusElement = byId<HTMLParagraphElement>("save-status");
+let currentProfile = emptyProfile();
+let currentMappings: FieldMapping[] = [];
+
+const PROFILE_SECTION_LABELS: Record<string, string> = {
+  basic: "基本信息",
+  education: "教育经历",
+  projects: "项目经历",
+  research: "科研 / 论文",
+  awards: "获奖情况",
+  languages: "语言能力",
+  skills: "技能",
+  custom: "自定义字段"
+};
 
 function setStatus(message: string, error = false): void {
   statusElement.textContent = message;
@@ -229,7 +243,73 @@ function renderProfile(profile: ResumeProfile): void {
   const basicContainer = byId<HTMLElement>("basic-fields");
   clear(basicContainer);
   for (const field of BASIC_FIELDS) basicContainer.append(createField(field, profile.basic[field.key as keyof typeof profile.basic], "data-basic-key"));
-  for (const collection of Object.keys(COLLECTIONS) as ProfileCollection[]) renderCollection(collection, profile[collection],);
+  for (const collection of Object.keys(COLLECTIONS) as ProfileCollection[]) renderCollection(collection, profile[collection]);
+}
+
+function renderMappings(): void {
+  const container = byId<HTMLElement>("mapping-list");
+  clear(container);
+  if (currentMappings.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-entry";
+    empty.textContent = "暂无 mapping memory。只有用户确认并成功复核的建议字段才会出现在这里。";
+    container.append(empty);
+    return;
+  }
+  const candidates = buildProfileCandidates(currentProfile);
+  const hosts = new Map<string, FieldMapping[]>();
+  for (const mapping of currentMappings) hosts.set(mapping.hostname, [...(hosts.get(mapping.hostname) ?? []), mapping]);
+  for (const [hostname, mappings] of hosts) {
+    const hostHeading = document.createElement("p");
+    hostHeading.className = "hint";
+    hostHeading.textContent = `${hostname} · ${mappings.length} 条`;
+    container.append(hostHeading);
+    for (const mapping of mappings) {
+      const card = document.createElement("div");
+      card.className = "mapping-card";
+      const copy = document.createElement("div");
+      copy.className = "mapping-copy";
+      const strong = document.createElement("strong");
+      strong.textContent = mapping.fieldLabel || mapping.fieldName || "未命名网页字段";
+      const profileText = document.createElement("span");
+      const mappedCandidate = candidates.find((candidate) => candidate.profileKey === mapping.profileKey);
+      profileText.textContent = `→ ${mappedCandidate ? `${PROFILE_SECTION_LABELS[mappedCandidate.section] ?? mappedCandidate.section} · ${mappedCandidate.displayName}` : mapping.profileKey}`;
+      const dateText = document.createElement("span");
+      dateText.textContent = `创建：${mapping.createdAt} · 更新：${mapping.updatedAt}`;
+      copy.append(strong, profileText, dateText);
+      const actions = document.createElement("div");
+      actions.className = "mapping-actions";
+      const forget = document.createElement("button");
+      forget.type = "button";
+      forget.textContent = "删除";
+      forget.addEventListener("click", () => void forgetMapping(mapping.id));
+      actions.append(forget);
+      card.append(copy, actions);
+      container.append(card);
+    }
+    const forgetHost = document.createElement("button");
+    forgetHost.type = "button";
+    forgetHost.textContent = `删除 ${hostname} 的全部映射`;
+    forgetHost.addEventListener("click", () => void forgetHostMappings(hostname));
+    container.append(forgetHost);
+  }
+}
+
+async function refreshMappings(): Promise<void> {
+  currentMappings = await loadMappings(localStorageArea());
+  renderMappings();
+}
+
+async function forgetMapping(mappingId: string): Promise<void> {
+  await chrome.runtime.sendMessage({ type: "FORGET_MAPPING", mappingId });
+  await refreshMappings();
+  setStatus("单条 mapping 已删除。 ");
+}
+
+async function forgetHostMappings(hostname: string): Promise<void> {
+  await chrome.runtime.sendMessage({ type: "FORGET_MAPPINGS", hostname });
+  await refreshMappings();
+  setStatus(`已删除 ${hostname} 的全部 mapping。 `);
 }
 
 function readBasic(): Record<string, string> {
@@ -292,7 +372,9 @@ function sampleProfile(): ResumeProfile {
 }
 
 async function saveCurrent(): Promise<void> {
-  await saveProfile(profileFromForm(), localStorageArea());
+  currentProfile = profileFromForm();
+  await saveProfile(currentProfile, localStorageArea());
+  await refreshMappings();
   setStatus("Profile 已保存到本机。扩展不会把这些资料发送到网页之外。 ");
 }
 
@@ -311,6 +393,7 @@ async function importProfile(file: File): Promise<void> {
   try {
     const parsed: unknown = JSON.parse(await file.text());
     const next = normalizeProfile(parsed);
+    currentProfile = next;
     renderProfile(next);
     setStatus("已读取导入文件；点击“保存 Profile”后才会写入浏览器本地存储。 ");
   } catch {
@@ -322,13 +405,17 @@ async function clearLocalData(): Promise<void> {
   if (!window.confirm("确定清空 ResumeAutoFiller 的全部本地 Profile、设置和映射吗？此操作不可撤销。")) return;
   const response = await chrome.runtime.sendMessage({ type: "CLEAR_LOCAL_DATA" });
   if (!response?.ok) throw new Error(response?.error ?? "清空失败");
-  renderProfile(emptyProfile());
+  currentProfile = emptyProfile();
+  currentMappings = [];
+  renderProfile(currentProfile);
+  renderMappings();
   setStatus("全部本地数据已清空。 ");
 }
 
 async function init(): Promise<void> {
-  const profile = await loadProfile(localStorageArea());
-  renderProfile(profile);
+  currentProfile = await loadProfile(localStorageArea());
+  renderProfile(currentProfile);
+  await refreshMappings();
   setStatus("已加载本地 Profile；修改后点击保存。 ");
 }
 
@@ -337,7 +424,8 @@ for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>("[d
 }
 byId("save-profile").addEventListener("click", () => void saveCurrent().catch(() => setStatus("保存失败，请重试。", true)));
 byId("load-sample").addEventListener("click", () => {
-  renderProfile(sampleProfile());
+  currentProfile = sampleProfile();
+  renderProfile(currentProfile);
   setStatus("已载入虚构示例；这不会自动覆盖本地数据，确认后请点击保存。 ");
 });
 byId("export-profile").addEventListener("click", exportProfile);
@@ -346,6 +434,6 @@ byId<HTMLInputElement>("import-file").addEventListener("change", (event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (file) void importProfile(file);
 });
-byId("forget-mappings").addEventListener("click", () => void chrome.runtime.sendMessage({ type: "FORGET_MAPPINGS" }).then(() => setStatus("全部 mapping memory 已删除。 ")));
+byId("forget-mappings").addEventListener("click", () => void chrome.runtime.sendMessage({ type: "FORGET_MAPPINGS" }).then(() => refreshMappings()).then(() => setStatus("全部 mapping memory 已删除。 ")));
 byId("clear-local").addEventListener("click", () => void clearLocalData().catch((error: unknown) => setStatus(error instanceof Error ? error.message : "清空失败", true)));
 void init().catch(() => setStatus("无法加载本地 Profile。", true));

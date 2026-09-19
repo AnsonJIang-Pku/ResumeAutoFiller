@@ -39,6 +39,13 @@ code { padding: 2px 4px; border-radius: 4px; color: #315b9a; background: #eaf1fc
 .split-card { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .split-card .section-heading { align-items: center; }
 .data-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.mapping-list { display: grid; gap: 8px; margin-top: 14px; }
+.mapping-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fbfcfe; }
+.mapping-copy { min-width: 0; color: #58657b; font-size: 12px; line-height: 1.5; }
+.mapping-copy strong, .mapping-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mapping-copy span { color: #8793a5; font-size: 11px; }
+.mapping-actions { display: flex; flex: 0 0 auto; gap: 5px; }
+.mapping-actions button { padding: 5px 7px; font-size: 11px; }
 .hidden { display: none; }
 footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; color: #7b889d; font-size: 12px; }
 footer a { color: #315b9a; }

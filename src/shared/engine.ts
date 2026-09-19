@@ -4,6 +4,7 @@ import { resolveProfileValue } from "./profile";
 import { fillElement, hasExistingValue, resultForFailure, verifyElement } from "./executor";
 import { matchFields } from "./matcher";
 import { scanDocument } from "./scanner";
+import { selectDriverFor } from "./select";
 import type { FieldMapping, FieldMatch, FillReport, FillResult, ResumeProfile, ScannedField } from "./types";
 
 export interface PageMatchResult {
@@ -41,7 +42,7 @@ function resultForMatch(match: FieldMatch, status: FillResult["status"], reason:
   };
 }
 
-function executeOne(match: FieldMatch, field: ScannedField, profile: ResumeProfile, options: ExecuteOptions): FillResult {
+async function executeOne(match: FieldMatch, field: ScannedField, profile: ResumeProfile, options: ExecuteOptions): Promise<FillResult> {
   if (!field.element.isConnected) return resultForMatch(match, "FAILED", "页面结构已变化，字段已脱离文档，请重新扫描");
   if (match.decision === "ABSTAIN") return resultForMatch(match, "UNCERTAIN", match.reason === "LOW_CONFIDENCE" ? "置信度不足，未自动填写" : "没有可靠匹配");
   if (match.decision === "MANUAL") return resultForMatch(match, "MANUAL_REQUIRED", "该控件必须人工处理");
@@ -57,6 +58,17 @@ function executeOne(match: FieldMatch, field: ScannedField, profile: ResumeProfi
   if (!compactText(value)) return resultForMatch(match, "NO_MATCH", "Profile 中没有可填写的值");
   if (!options.overwriteExisting && hasExistingValue(field.element)) return resultForMatch(match, "SKIPPED", "已有内容，默认不覆盖");
   try {
+    if (field.fillCapability === "select" && !(field.element instanceof HTMLSelectElement)) {
+      const driver = selectDriverFor(field.element as HTMLElement);
+      if (!driver) return resultForMatch(match, "MANUAL_REQUIRED", "未识别的自定义下拉控件");
+      const selectResult = await driver.select(field.element as HTMLElement, value);
+      if (selectResult.status !== "FILLED") return resultForMatch(match, selectResult.status, selectResult.reason);
+      return {
+        ...resultForMatch(match, "FILLED", selectResult.reason),
+        expected: match.sensitiveReview ? maskSensitiveValue(value) : value,
+        actual: match.sensitiveReview ? maskSensitiveValue(selectResult.actual ?? value) : (selectResult.actual ?? value)
+      };
+    }
     fillElement(field.element, value, options.overwriteExisting);
     if (!field.element.isConnected) return resultForMatch(match, "FAILED", "填写事件改变了页面结构，请重新扫描");
     if (!verifyElement(field.element, value)) return {
@@ -82,7 +94,7 @@ function readActual(field: ScannedField): string {
   return element.textContent?.trim() ?? "";
 }
 
-export function executeMatches(page: PageMatchResult, profile: ResumeProfile, options: ExecuteOptions): FillReport {
+export async function executeMatches(page: PageMatchResult, profile: ResumeProfile, options: ExecuteOptions): Promise<FillReport> {
   const results: FillResult[] = [];
   const successful = new Map<string, { match: FieldMatch; field: ScannedField; resultIndex: number }>();
   for (const match of page.matches) {
@@ -98,7 +110,7 @@ export function executeMatches(page: PageMatchResult, profile: ResumeProfile, op
       results.push(resultForMatch(match, "FAILED", "字段标签或控件属性已变化，请重新扫描"));
       continue;
     }
-    const result = executeOne(match, field, profile, options);
+    const result = await executeOne(match, field, profile, options);
     results.push(result);
     if (result.status === "FILLED" && page.document) {
       const postEventFields = scanDocument(page.document, field.hostname);

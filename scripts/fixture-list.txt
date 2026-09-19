@@ -10,3 +10,9 @@
 10-dynamic-fields.html
 11-shadow-dom.html
 12-complex-controls.html
+13-ant-select.html
+14-element-select.html
+15-portal-dropdown.html
+16-ambiguous-dropdown.html
+17-repeat-research.html
+18-suggestion-correction.html

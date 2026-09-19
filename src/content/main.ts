@@ -1,5 +1,6 @@
 import { executeMatches, matchPage, type PageMatchResult } from "../shared/engine";
 import { createStableId } from "../shared/ids";
+import { buildProfileCandidates } from "../shared/profile";
 import { scanDocument } from "../shared/scanner";
 import type { ExtensionMessage } from "../shared/messages";
 import type { FillReport, FieldMatch } from "../shared/types";
@@ -137,10 +138,10 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
   }
   if (message.type === "FILL_HIGH_CONFIDENCE") {
     if (!session) return errorResponse("请先扫描当前页面");
-    if (sessionDirty) return errorResponse("页面结构已经变化，请重新扫描后再填写");
+    if (sessionDirty) return errorResponse("SESSION_STALE：页面结构已经变化，请重新扫描后再填写");
     suppressInternalMutations = true;
     try {
-      const report = executeMatches(session, message.profile, { overwriteExisting: message.overwriteExisting, autoOnly: true });
+      const report = await executeMatches(session, message.profile, { overwriteExisting: message.overwriteExisting, autoOnly: true });
       showOverlay(report);
       return { ok: true, report: toPublicReport(report) };
     } finally {
@@ -149,19 +150,24 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
   }
   if (message.type === "FILL_SELECTED_SUGGESTION") {
     if (!session) return errorResponse("请先扫描当前页面");
-    if (message.sessionId !== sessionId) return errorResponse("扫描结果已经过期，请重新扫描后再确认");
-    if (sessionDirty) return errorResponse("页面结构已经变化，请重新扫描后再确认");
+    if (message.sessionId !== sessionId) return errorResponse("SESSION_STALE：扫描结果已经过期，请重新扫描后再确认");
+    if (sessionDirty) return errorResponse("SESSION_STALE：页面结构已经变化，请重新扫描后再确认");
     const match = session.matches.find((item) => item.descriptor.id === message.fieldId);
     if (!match) return errorResponse("字段已经变化，请重新扫描");
     if (match.decision !== "SUGGEST") return errorResponse("只有建议字段可以逐项确认");
+    const selectedCandidate = message.profileKey
+      ? buildProfileCandidates(message.profile).find((candidate) => candidate.profileKey === message.profileKey && candidate.value.trim())
+      : match.candidate;
+    if (!selectedCandidate) return errorResponse("所选 Profile 字段没有可填写的值");
+    const confirmedMatch = message.profileKey ? { ...match, candidate: selectedCandidate, score: 100, confidence: 100, reason: "READY" as const } : match;
     const singlePage: PageMatchResult = {
       ...session,
-      matches: [match],
+      matches: [confirmedMatch],
       fields: session.fields.filter((field) => field.id === message.fieldId)
     };
     suppressInternalMutations = true;
     try {
-      const report = executeMatches(singlePage, message.profile, { overwriteExisting: message.overwriteExisting, selectedFieldIds: new Set([message.fieldId]) });
+      const report = await executeMatches(singlePage, message.profile, { overwriteExisting: message.overwriteExisting, selectedFieldIds: new Set([message.fieldId]) });
       showOverlay(report);
       return { ok: true, report: toPublicReport(report) };
     } finally {

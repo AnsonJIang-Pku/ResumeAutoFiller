@@ -38,6 +38,9 @@ button.secondary { color: #315b9a; background: #eef4ff; }
 .match-state.auto, .match-state.filled { color: #176f3a; background: #e5f6eb; }
 .match-state.suggest, .match-state.manual { color: #985700; background: #fff1d8; }
 .match-state.abstain, .match-state.failed { color: #a82b31; background: #fdebed; }
+.suggest-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; }
 .confirm-button { padding: 4px 7px; color: #315b9a; font-size: 11px; }
+.profile-select { max-width: 145px; padding: 4px; border: 1px solid #ccd5e3; border-radius: 5px; color: #24324a; background: #fff; font-size: 11px; }
+.ignore-button { padding: 4px 7px; border-color: transparent; color: #7a879b; font-size: 11px; background: transparent; }
 footer { display: flex; justify-content: space-between; gap: 8px; margin-top: 17px; color: #7a879b; font-size: 10px; }
 .hidden { display: none; }

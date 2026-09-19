@@ -51,12 +51,27 @@ if (permissions.has("storage") && permissions.has("sync")) {
   violations.push("sync storage is forbidden");
 }
 
+function auditManifestShape(candidate, label) {
+  for (const key of ["host_permissions", "optional_host_permissions", "externally_connectable"]) {
+    if (Object.prototype.hasOwnProperty.call(candidate, key)) violations.push(`${label} manifest must not declare ${key}`);
+  }
+  const policy = JSON.stringify(candidate.content_security_policy ?? "");
+  if (/\b(?:https?|wss?):\/\//u.test(policy)) violations.push(`${label} manifest CSP contains a remote origin`);
+  for (const resourceGroup of candidate.web_accessible_resources ?? []) {
+    for (const match of resourceGroup.matches ?? []) {
+      if (/\b(?:https?|wss?):\/\//u.test(match)) violations.push(`${label} web_accessible_resources exposes a remote match: ${match}`);
+    }
+  }
+}
+
+auditManifestShape(manifest, "source");
+
 for (const builtBrowser of ["chrome", "edge"]) {
   try {
     const builtManifest = JSON.parse(await readFile(join(root, "dist", builtBrowser, "manifest.json"), "utf8"));
     const builtPermissions = new Set(builtManifest.permissions ?? []);
     for (const permission of builtPermissions) if (!allowed.has(permission)) violations.push(`built ${builtBrowser} manifest permission is outside the allowlist: ${permission}`);
-    if (builtManifest.host_permissions || builtManifest.optional_host_permissions) violations.push(`built ${builtBrowser} manifest declares host permissions`);
+    auditManifestShape(builtManifest, `built ${builtBrowser}`);
   } catch {
     // The generated manifest is checked when dist exists; source checks remain valid before build.
   }
@@ -66,4 +81,4 @@ if (violations.length > 0) {
   process.stderr.write(`Privacy audit failed:\n${violations.join("\n")}\n`);
   process.exit(1);
 }
-console.log(`Privacy audit passed: ${files.length} source files inspected; no network, sync storage, telemetry, or console.log usage found.`);
+console.log(`Privacy audit passed: ${files.length} source files inspected; no network, sync storage, telemetry, remote manifest access, or console.log usage found.`);
