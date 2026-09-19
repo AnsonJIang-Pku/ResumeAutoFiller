@@ -72,6 +72,16 @@ describe("DOM scanner and deterministic matcher", () => {
     dom.window.close();
   });
 
+  it("keeps navigation elements with combobox semantics manual", () => {
+    const dom = domFromHtml("<!doctype html><a href='/submit' role='combobox' aria-label='学历'>学历</a>");
+    const profile = basicProfile();
+    profile.education[0]!.degree = "硕士";
+    const match = matchFields(scanDocument(dom.window.document, "jobs.example.test"), profile)[0];
+    expect(match?.decision).toBe("MANUAL");
+    expect(match?.reason).toBe("UNSUPPORTED_CONTROL");
+    dom.window.close();
+  });
+
   it("aligns repeat fields by occurrence and stable Profile IDs", () => {
     const dom = domFromHtml(`<!doctype html><main><fieldset><legend>教育经历</legend><label>学校</label><input><label>专业</label><input></fieldset><fieldset><legend>教育经历</legend><label>学校</label><input><label>专业</label><input></fieldset></main>`);
     const matches = matchFields(scanDocument(dom.window.document, "jobs.example.test"), basicProfile());

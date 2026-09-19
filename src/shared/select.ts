@@ -150,6 +150,6 @@ const DRIVERS: SelectDriver[] = [
 export function selectDriverFor(element: HTMLElement): SelectDriver | undefined {
   const tagName = element.tagName.toLowerCase();
   const type = element.getAttribute("type")?.toLocaleLowerCase();
-  if (tagName === "button" || ["submit", "button", "reset", "image"].includes(type ?? "")) return undefined;
+  if (["a", "area", "button", "label", "summary"].includes(tagName) || ["submit", "button", "reset", "image"].includes(type ?? "")) return undefined;
   return DRIVERS.find((driver) => driver.canHandle(element));
 }
