@@ -62,6 +62,16 @@ describe("DOM scanner and deterministic matcher", () => {
     dom.window.close();
   });
 
+  it("keeps submit-looking combobox buttons manual", () => {
+    const dom = domFromHtml("<!doctype html><button type='submit' aria-haspopup='listbox' aria-label='学历'>学历</button>");
+    const profile = basicProfile();
+    profile.education[0]!.degree = "硕士";
+    const match = matchFields(scanDocument(dom.window.document, "jobs.example.test"), profile)[0];
+    expect(match?.decision).toBe("MANUAL");
+    expect(match?.reason).toBe("UNSUPPORTED_CONTROL");
+    dom.window.close();
+  });
+
   it("aligns repeat fields by occurrence and stable Profile IDs", () => {
     const dom = domFromHtml(`<!doctype html><main><fieldset><legend>教育经历</legend><label>学校</label><input><label>专业</label><input></fieldset><fieldset><legend>教育经历</legend><label>学校</label><input><label>专业</label><input></fieldset></main>`);
     const matches = matchFields(scanDocument(dom.window.document, "jobs.example.test"), basicProfile());
@@ -91,6 +101,12 @@ describe("DOM scanner and deterministic matcher", () => {
     const dom = domFromHtml(`<!doctype html><resume-field></resume-field><script>const host=document.querySelector('resume-field');const root=host.attachShadow({mode:'open'});root.innerHTML='<span id="phone-label">手机号</span><input aria-labelledby="phone-label" type="tel">';</script>`, "https://jobs.example.test/app", "dangerously");
     const field = scanDocument(dom.window.document, "jobs.example.test")[0];
     expect(field?.label).toBe("手机号");
+    dom.window.close();
+  });
+
+  it("inherits hidden and disabled boundaries through a shadow host", () => {
+    const dom = domFromHtml(`<!doctype html><fieldset disabled><resume-field></resume-field></fieldset><div style="display:none"><resume-hidden></resume-hidden></div><script>const disabledHost=document.querySelector('resume-field');const disabledRoot=disabledHost.attachShadow({mode:'open'});disabledRoot.innerHTML='<input aria-label="手机号" type="tel">';const hiddenHost=document.querySelector('resume-hidden');const hiddenRoot=hiddenHost.attachShadow({mode:'open'});hiddenRoot.innerHTML='<input aria-label="邮箱" type="email">';</script>`, "https://jobs.example.test/app", "dangerously");
+    expect(scanDocument(dom.window.document, "jobs.example.test")).toHaveLength(0);
     dom.window.close();
   });
 

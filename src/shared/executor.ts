@@ -45,7 +45,8 @@ function fillSelect(element: HTMLSelectElement, expected: string): void {
 
 function readValue(element: FormElement): string {
   if (element.getAttribute("role") === "combobox" || element.getAttribute("aria-haspopup") === "listbox") {
-    const semanticValues = [element.getAttribute("aria-valuetext"), element.getAttribute("data-value"), element instanceof HTMLInputElement ? element.value : ""];
+    const nestedValue = element.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea")?.value ?? "";
+    const semanticValues = [element.getAttribute("aria-valuetext"), element.getAttribute("data-value"), element instanceof HTMLInputElement ? element.value : "", nestedValue];
     const semanticValue = semanticValues.find((value) => !isPlaceholderText(value));
     if (semanticValue) return semanticValue;
     const visibleText = element.textContent?.trim() ?? "";

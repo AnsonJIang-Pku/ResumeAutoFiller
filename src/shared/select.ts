@@ -81,6 +81,7 @@ function controlState(element: HTMLElement): string[] {
     if (value) values.push(value);
   }
   if ("value" in element && typeof (element as HTMLInputElement).value === "string") values.push((element as HTMLInputElement).value);
+  for (const control of Array.from(element.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"))) values.push(control.value);
   values.push(element.textContent || "");
   return values.map(normalizeText).filter(Boolean);
 }
@@ -141,5 +142,8 @@ const DRIVERS: SelectDriver[] = [
 ];
 
 export function selectDriverFor(element: HTMLElement): SelectDriver | undefined {
+  const tagName = element.tagName.toLowerCase();
+  const type = element.getAttribute("type")?.toLocaleLowerCase();
+  if (tagName === "button" || ["submit", "button", "reset"].includes(type ?? "")) return undefined;
   return DRIVERS.find((driver) => driver.canHandle(element));
 }

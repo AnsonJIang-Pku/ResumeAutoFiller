@@ -28,20 +28,33 @@ function isElement(node: Node): node is Element {
 }
 
 function isDisabled(element: Element): boolean {
-  return element.hasAttribute("disabled") || element.getAttribute("aria-disabled") === "true" || Boolean(element.closest("fieldset[disabled]"));
+  let current: Element | null = element;
+  while (current) {
+    if (current.hasAttribute("disabled") || current.getAttribute("aria-disabled") === "true" || current.matches("fieldset[disabled]")) return true;
+    current = composedParent(current);
+  }
+  return false;
 }
 
 function isHidden(element: Element): boolean {
-  if (element.hasAttribute("hidden") || element.getAttribute("aria-hidden") === "true") return true;
-  if (element.closest("[hidden], [aria-hidden='true']")) return true;
   const ownerWindow = element.ownerDocument.defaultView;
-  const styles = ownerWindow?.getComputedStyle(element);
-  if (styles && (styles.display === "none" || styles.visibility === "hidden" || styles.visibility === "collapse")) return true;
+  let current: Element | null = element;
+  while (current) {
+    if (current.hasAttribute("hidden") || current.getAttribute("aria-hidden") === "true") return true;
+    const styles = ownerWindow?.getComputedStyle(current);
+    if (styles && (styles.display === "none" || styles.visibility === "hidden" || styles.visibility === "collapse")) return true;
+    current = composedParent(current);
+  }
   return false;
 }
 
 function isPluginElement(element: Element): boolean {
-  return Boolean(element.closest("[data-resume-autofiller-root='true']"));
+  let current: Element | null = element;
+  while (current) {
+    if (current.matches("[data-resume-autofiller-root='true']")) return true;
+    current = composedParent(current);
+  }
+  return false;
 }
 
 function pushUnique(target: string[], value: string | null | undefined): void {
@@ -134,6 +147,8 @@ function composedParent(element: Element): Element | null {
 }
 
 function capabilityFor(element: Element): FieldCapability {
+  const tagName = element.tagName.toLowerCase();
+  if (tagName === "button" || element.getAttribute("type") === "submit" || element.getAttribute("type") === "button" || element.getAttribute("type") === "reset") return "unsupported";
   const role = element.getAttribute("role");
   if (["spinbutton", "slider", "button", "checkbox", "radio"].includes(role ?? "")) return "unsupported";
   if (role === "combobox" || element.getAttribute("aria-haspopup") === "listbox") return "select";
@@ -152,7 +167,8 @@ function capabilityFor(element: Element): FieldCapability {
 function currentValue(element: Element): string {
   if (element instanceof HTMLInputElement && element.type === "password") return "";
   if (element.getAttribute("role") === "combobox" || element.getAttribute("aria-haspopup") === "listbox") {
-    const semanticValues = [element.getAttribute("aria-valuetext"), element.getAttribute("data-value"), element instanceof HTMLInputElement ? element.value : ""];
+    const nestedValue = element.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea")?.value ?? "";
+    const semanticValues = [element.getAttribute("aria-valuetext"), element.getAttribute("data-value"), element instanceof HTMLInputElement ? element.value : "", nestedValue];
     const semanticValue = semanticValues.find((value) => !isPlaceholderText(value));
     if (semanticValue) return semanticValue;
     const visibleText = compactText(element.textContent);
