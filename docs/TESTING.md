@@ -16,6 +16,8 @@ pnpm verify          # check + E2E；明确输出 PASS / SKIPPED / FAIL
 
 `pnpm check` 会执行类型检查、lint、Vitest、coverage、隐私审计和双浏览器构建。
 
+GitHub CI 执行相同的非浏览器检查，但不运行浏览器 extension E2E；GitHub CI 不替代本机 `pnpm verify`。本机 `pnpm verify` 才是包含完整 E2E 的 release gate。
+
 `test:coverage` 使用 V8 覆盖率，当前 `src/shared` statement coverage 为 95.20%。
 
 ## 测试层次

@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.13.0
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -31,6 +31,8 @@ jobs:
         run: pnpm lint
       - name: Unit and integration tests
         run: pnpm test
+      - name: Coverage
+        run: pnpm test:coverage
       - name: Build
         run: pnpm build
       - name: Privacy audit

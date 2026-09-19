@@ -72,7 +72,7 @@ pnpm check           # 依次执行类型、lint、测试、隐私审计和构�
 pnpm verify          # check + 显式 PASS/SKIPPED/FAIL 的本地 release gate + E2E
 ```
 
-`test-fixtures/` 只包含虚构页面和虚构资料，不包含任何真实 Profile。测试覆盖 native input/textarea/select、ARIA/邻近 label、Ant/Element/portal/ambiguous custom select、重复教育/项目/科研、Shadow DOM、contenteditable、动态字段、已有值保护、敏感/人工控件和 mapping 指纹。`pnpm verify` 会把 E2E 缺少浏览器或被环境跳过明确标为 `SKIPPED`，不会默默算作通过。真实 ATS fixture 的状态见 [`real-world-fixtures/README.md`](real-world-fixtures/README.md)。
+`test-fixtures/` 只包含虚构页面和虚构资料，不包含任何真实 Profile。测试覆盖 native input/textarea/select、ARIA/邻近 label、Ant/Element/portal/ambiguous custom select、重复教育/项目/科研、Shadow DOM、contenteditable、动态字段、已有值保护、敏感/人工控件和 mapping 指纹。GitHub CI 执行非浏览器 release checks；它不替代本机 `pnpm verify`。`pnpm verify` 会把 E2E 缺少浏览器或被环境跳过明确标为 `SKIPPED`，不会默默算作通过。真实 ATS fixture 的状态见 [`real-world-fixtures/README.md`](real-world-fixtures/README.md)。
 
 `test:e2e` 会运行真实构建的 content bundle，并用 Playwright Chromium 加载 unpacked MV3，验证 options 保存 Profile 和 popup 读取本地数据。部分系统 Chrome 发行版会在自动化模式下屏蔽扩展 service worker；测试会在缺少可用浏览器时明确 skipped，手动 `Load unpacked` 安装路径不受影响。
 
