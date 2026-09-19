@@ -148,7 +148,7 @@ function composedParent(element: Element): Element | null {
 
 function capabilityFor(element: Element): FieldCapability {
   const tagName = element.tagName.toLowerCase();
-  if (tagName === "button" || element.getAttribute("type") === "submit" || element.getAttribute("type") === "button" || element.getAttribute("type") === "reset") return "unsupported";
+  if (tagName === "button" || ["submit", "button", "reset", "image"].includes(element.getAttribute("type")?.toLocaleLowerCase() ?? "")) return "unsupported";
   const role = element.getAttribute("role");
   if (["spinbutton", "slider", "button", "checkbox", "radio"].includes(role ?? "")) return "unsupported";
   if (role === "combobox" || element.getAttribute("aria-haspopup") === "listbox") return "select";

@@ -26,7 +26,7 @@ function optionValue(element: HTMLElement): string {
 function isSafeOptionElement(element: HTMLElement): boolean {
   const tagName = element.tagName.toLowerCase();
   const type = element.getAttribute("type")?.toLocaleLowerCase();
-  return tagName !== "button" && !["submit", "button", "reset"].includes(type ?? "");
+  return !["a", "button", "input", "label", "select", "summary", "textarea"].includes(tagName) && !["submit", "button", "reset", "image"].includes(type ?? "");
 }
 
 function optionSelected(element: HTMLElement): boolean {
@@ -42,29 +42,27 @@ function optionsIn(root: Element): HTMLElement[] {
 
 function relatedOptionRoots(element: HTMLElement): Element[] {
   const document = element.ownerDocument;
-  const roots: Element[] = [];
   const ids = [element.getAttribute("aria-controls"), element.getAttribute("aria-owns")]
     .flatMap((value) => (value ?? "").split(/\s+/))
     .filter(Boolean);
+  const roots: Element[] = [];
   for (const id of ids) {
     const target = document.getElementById(id);
     if (target && isVisible(target)) roots.push(target);
   }
+  if (ids.length > 0) return Array.from(new Set(roots));
 
   const componentSelectors = element.closest(".ant-select, .ant-select-selector")
     ? [".ant-select-dropdown"]
     : element.closest(".el-select, .el-input")
       ? [".el-select-dropdown"]
       : [];
-  for (const selector of componentSelectors) {
-    for (const popup of Array.from(document.querySelectorAll<HTMLElement>(selector))) if (isVisible(popup)) roots.push(popup);
+  if (componentSelectors.length > 0) {
+    const popups = componentSelectors.flatMap((selector) => Array.from(document.querySelectorAll<HTMLElement>(selector)).filter(isVisible));
+    return popups.length === 1 ? [popups[0]!] : [];
   }
 
-  if (roots.length === 0) {
-    const visibleListboxes = Array.from(document.querySelectorAll<HTMLElement>("[role='listbox']")).filter(isVisible);
-    if (visibleListboxes.length === 1) roots.push(visibleListboxes[0]!);
-  }
-  return Array.from(new Set(roots));
+  return [];
 }
 
 function collectOptions(element: HTMLElement): OptionDescriptor[] {
@@ -129,6 +127,7 @@ class DomSelectDriver implements SelectDriver {
     if (!element.isConnected) return { status: "FAILED", reason: "页面结构已经变化，请重新扫描" };
     element.click();
     const options = await waitForOptions(element);
+    if (!element.isConnected) return { status: "FAILED", reason: "页面结构已经变化，请重新扫描" };
     const target = normalizeText(expected);
     const exact = options.filter((option) => normalizeText(option.label) === target || normalizeText(option.value) === target);
     const option = exact[0];
@@ -151,6 +150,6 @@ const DRIVERS: SelectDriver[] = [
 export function selectDriverFor(element: HTMLElement): SelectDriver | undefined {
   const tagName = element.tagName.toLowerCase();
   const type = element.getAttribute("type")?.toLocaleLowerCase();
-  if (tagName === "button" || ["submit", "button", "reset"].includes(type ?? "")) return undefined;
+  if (tagName === "button" || ["submit", "button", "reset", "image"].includes(type ?? "")) return undefined;
   return DRIVERS.find((driver) => driver.canHandle(element));
 }

@@ -88,4 +88,26 @@ describe("custom select drivers", () => {
     expect(result.status).toBe("MANUAL_REQUIRED");
     dom.window.close();
   });
+
+  it("does not click an image submit control even when it claims role=option", async () => {
+    const dom = domFromHtml("<!doctype html><div role='combobox' aria-expanded='true'>请选择</div><div role='listbox'><input type='image' role='option' aria-label='硕士'></div>");
+    const control = dom.window.document.querySelector<HTMLElement>("[role=combobox]");
+    if (!control) throw new Error("combobox missing");
+    const driver = selectDriverFor(control);
+    if (!driver) throw new Error("select driver missing");
+    const result = await driver.select(control, "硕士");
+    expect(result.status).toBe("MANUAL_REQUIRED");
+    dom.window.close();
+  });
+
+  it("requires a unique visible framework popup when component association is implicit", async () => {
+    const dom = domFromHtml("<!doctype html><div class='ant-select' role='combobox' aria-expanded='true'>请选择</div><div class='ant-select-dropdown'><div class='ant-select-item-option' role='option'>硕士</div></div><div class='ant-select-dropdown'><div class='ant-select-item-option' role='option'>博士</div></div>");
+    const control = dom.window.document.querySelector<HTMLElement>(".ant-select");
+    if (!control) throw new Error("combobox missing");
+    const driver = selectDriverFor(control);
+    if (!driver) throw new Error("select driver missing");
+    const result = await driver.select(control, "硕士");
+    expect(result.status).toBe("MANUAL_REQUIRED");
+    dom.window.close();
+  });
 });
