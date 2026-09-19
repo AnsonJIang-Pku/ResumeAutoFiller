@@ -77,4 +77,15 @@ describe("custom select drivers", () => {
     expect(result.status).toBe("MANUAL_REQUIRED");
     dom.window.close();
   });
+
+  it("does not click a submit-like element even when it claims role=option", async () => {
+    const dom = domFromHtml("<!doctype html><div role='combobox' aria-expanded='true'>请选择</div><div role='listbox'><button type='submit' role='option'>硕士</button></div>");
+    const control = dom.window.document.querySelector<HTMLElement>("[role=combobox]");
+    if (!control) throw new Error("combobox missing");
+    const driver = selectDriverFor(control);
+    if (!driver) throw new Error("select driver missing");
+    const result = await driver.select(control, "硕士");
+    expect(result.status).toBe("MANUAL_REQUIRED");
+    dom.window.close();
+  });
 });

@@ -23,6 +23,12 @@ function optionValue(element: HTMLElement): string {
   return compactText(element.getAttribute("data-value") || element.getAttribute("value") || optionLabel(element));
 }
 
+function isSafeOptionElement(element: HTMLElement): boolean {
+  const tagName = element.tagName.toLowerCase();
+  const type = element.getAttribute("type")?.toLocaleLowerCase();
+  return tagName !== "button" && !["submit", "button", "reset"].includes(type ?? "");
+}
+
 function optionSelected(element: HTMLElement): boolean {
   return element.getAttribute("aria-selected") === "true" || element.classList.contains("is-selected") || element.classList.contains("ant-select-item-option-selected");
 }
@@ -128,6 +134,7 @@ class DomSelectDriver implements SelectDriver {
     const option = exact[0];
     if (exact.length !== 1 || !option) return { status: "MANUAL_REQUIRED", reason: exact.length === 0 ? "没有唯一精确下拉选项，需人工处理" : "AMBIGUOUS_OPTION：下拉选项存在歧义，未自动选择" };
     if (!option.element.isConnected) return { status: "FAILED", reason: "下拉选项在选择前已经变化，请重新扫描" };
+    if (!isSafeOptionElement(option.element)) return { status: "MANUAL_REQUIRED", reason: "下拉选项不是安全的语义 option，需要人工处理" };
     option.element.click();
     await Promise.resolve();
     if (!verifySelection(element, expected, option)) return { status: "FAILED", reason: "下拉选择后复核失败" };
