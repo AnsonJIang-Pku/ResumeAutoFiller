@@ -8,7 +8,7 @@ ResumeAutoFiller 是一个只供个人使用的 macOS Chromium 扩展，目标�
 
 ## 安装（macOS Chrome）
 
-需要 Node.js 20+ 和 pnpm。
+需要 Node.js 22.13+ 和 pnpm 11.19.0。
 
 ```bash
 pnpm install
