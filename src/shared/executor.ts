@@ -1,4 +1,4 @@
-import { compactText, normalizeText } from "./normalize";
+import { compactText, isPlaceholderText, normalizeText } from "./normalize";
 import type { FillResult, FormElement, ScannedField } from "./types";
 
 function dispatchValueEvents(element: FormElement): void {
@@ -45,7 +45,11 @@ function fillSelect(element: HTMLSelectElement, expected: string): void {
 
 function readValue(element: FormElement): string {
   if (element.getAttribute("role") === "combobox" || element.getAttribute("aria-haspopup") === "listbox") {
-    return element.getAttribute("aria-valuetext") || element.getAttribute("data-value") || (element instanceof HTMLInputElement ? element.value : "");
+    const semanticValues = [element.getAttribute("aria-valuetext"), element.getAttribute("data-value"), element instanceof HTMLInputElement ? element.value : ""];
+    const semanticValue = semanticValues.find((value) => !isPlaceholderText(value));
+    if (semanticValue) return semanticValue;
+    const visibleText = element.textContent?.trim() ?? "";
+    return isPlaceholderText(visibleText) ? "" : visibleText;
   }
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) return element.value;
   return element.textContent?.trim() ?? "";

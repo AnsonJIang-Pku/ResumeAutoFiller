@@ -64,9 +64,14 @@ function relatedOptionRoots(element: HTMLElement): Element[] {
 function collectOptions(element: HTMLElement): OptionDescriptor[] {
   const document = element.ownerDocument;
   const roots = relatedOptionRoots(element);
-  const candidates = roots.length > 0
-    ? roots.flatMap((root) => optionsIn(root))
-    : Array.from(document.querySelectorAll<HTMLElement>(OPTION_SELECTORS));
+  let candidates: HTMLElement[];
+  if (roots.length > 0) {
+    candidates = roots.flatMap((root) => optionsIn(root));
+  } else {
+    const visible = Array.from(document.querySelectorAll<HTMLElement>(OPTION_SELECTORS)).filter((option) => isVisible(option));
+    const optionGroups = new Set(visible.map((option) => option.parentElement ?? option));
+    candidates = element.getAttribute("aria-expanded") === "false" || optionGroups.size !== 1 ? [] : visible;
+  }
   const options = Array.from(new Set(candidates))
     .filter((option) => isVisible(option) && !option.closest("[data-resume-autofiller-root='true']"));
   return options.map((option) => ({ label: optionLabel(option), value: optionValue(option), selected: optionSelected(option), element: option }));

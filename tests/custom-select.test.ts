@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { executeMatches, matchPage } from "../src/shared/engine";
 import { emptyEducation, emptyProfile } from "../src/shared/profile";
 import { scanDocument } from "../src/shared/scanner";
+import { selectDriverFor } from "../src/shared/select";
 import { domFromHtml } from "./helpers";
 
 function selectProfile(school = "虚构大学") {
@@ -51,5 +52,29 @@ describe("custom select drivers", () => {
     expect(result.dom.window.document.querySelector("[data-ambiguous-list]")).not.toBeNull();
     expect(result.dom.window.document.querySelector("[role=combobox]")?.textContent).toBe("请选择");
     result.dom.window.close();
+  });
+
+  it("preserves a custom select that already has a non-placeholder visible value", async () => {
+    const dom = domFromHtml("<!doctype html><label>学历</label><div role='combobox' aria-label='学历'>硕士</div>");
+    const profile = selectProfile();
+    const fields = scanDocument(dom.window.document, "select.example.test");
+    expect(fields[0]?.currentValue).toBe("硕士");
+    const page = matchPage(dom.window.document, fields, profile);
+    expect(page.matches[0]?.decision).toBe("EXISTING");
+    const report = await executeMatches(page, profile, { overwriteExisting: false, autoOnly: true });
+    expect(report.results[0]?.status).toBe("SKIPPED");
+    expect(dom.window.document.querySelector("[role=combobox]")?.textContent).toBe("硕士");
+    dom.window.close();
+  });
+
+  it("does not use a globally visible option when multiple unassociated menus exist", async () => {
+    const dom = domFromHtml("<!doctype html><div role='combobox' aria-expanded='true'>请选择</div><div><div role='option'>硕士</div></div><div><div role='option'>其他菜单里的硕士</div></div>");
+    const control = dom.window.document.querySelector<HTMLElement>("[role=combobox]");
+    if (!control) throw new Error("combobox missing");
+    const driver = selectDriverFor(control);
+    if (!driver) throw new Error("select driver missing");
+    const result = await driver.select(control, "硕士");
+    expect(result.status).toBe("MANUAL_REQUIRED");
+    dom.window.close();
   });
 });

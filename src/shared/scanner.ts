@@ -1,5 +1,5 @@
 import { hashFingerprint } from "./ids";
-import { compactText, normalizeText } from "./normalize";
+import { compactText, isPlaceholderText, normalizeText } from "./normalize";
 import type { FieldCapability, FormElement, ScannedField } from "./types";
 
 const CONTROL_SELECTOR = [
@@ -152,7 +152,11 @@ function capabilityFor(element: Element): FieldCapability {
 function currentValue(element: Element): string {
   if (element instanceof HTMLInputElement && element.type === "password") return "";
   if (element.getAttribute("role") === "combobox" || element.getAttribute("aria-haspopup") === "listbox") {
-    return element.getAttribute("aria-valuetext") || element.getAttribute("data-value") || (element instanceof HTMLInputElement ? element.value : "");
+    const semanticValues = [element.getAttribute("aria-valuetext"), element.getAttribute("data-value"), element instanceof HTMLInputElement ? element.value : ""];
+    const semanticValue = semanticValues.find((value) => !isPlaceholderText(value));
+    if (semanticValue) return semanticValue;
+    const visibleText = compactText(element.textContent);
+    return isPlaceholderText(visibleText) ? "" : visibleText;
   }
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) return element.value;
   return element.textContent?.trim() ?? "";
@@ -204,6 +208,11 @@ function allControls(root: Document | ShadowRoot): Element[] {
   return result;
 }
 
+function isNestedInSemanticSelect(element: Element): boolean {
+  const semanticAncestor = element.parentElement?.closest("[role='combobox'], [aria-haspopup='listbox']");
+  return Boolean(semanticAncestor && semanticAncestor !== element);
+}
+
 export function fieldFingerprint(field: Pick<ScannedField, "hostname" | "domId" | "role" | "ariaLabel" | "ariaLabelledBy" | "label" | "name" | "placeholder" | "section" | "sectionLabel" | "type" | "occurrence">): string {
   return hashFingerprint([
     field.hostname,
@@ -225,7 +234,7 @@ export function scanDocument(document: Document, hostname = document.location?.h
   const fields: ScannedField[] = [];
   const occurrenceBySignature = new Map<string, number>();
   for (const element of allControls(document)) {
-    if (!isElement(element) || isHidden(element) || isPluginElement(element) || isDisabled(element)) continue;
+    if (!isElement(element) || isNestedInSemanticSelect(element) || isHidden(element) || isPluginElement(element) || isDisabled(element)) continue;
     const type = fieldType(element);
     if (["hidden", "submit", "button", "reset"].includes(type)) continue;
     const label = nearbyLabel(element);

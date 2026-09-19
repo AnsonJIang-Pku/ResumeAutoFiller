@@ -16,7 +16,7 @@ pnpm verify          # check + E2E；明确输出 PASS / SKIPPED / FAIL
 
 `pnpm check` 会执行类型检查、lint、Vitest、coverage、隐私审计和双浏览器构建。
 
-`test:coverage` 使用 V8 覆盖率，当前 `src/shared` statement coverage 为 94.44%。
+`test:coverage` 使用 V8 覆盖率，当前 `src/shared` statement coverage 为 94.82%。
 
 ## 测试层次
 
@@ -37,7 +37,7 @@ coverage  = 正确自动填写的确定性 eligible 字段 / 所有确定性 eli
 
 当前 matcher 的安全策略优先 precision：无法区分时进入 `SUGGEST` 或 abstain，不因追求 coverage 而猜测。重复字段必须按 occurrence 与稳定 ID 对齐；existing value 默认保持 100% 不覆盖。
 
-benchmark 同时报告 `total_scanned`、计划中的 `auto/suggest/manual/abstain`、实际 `auto_filled`、`unsupported`、precision、overall/native/custom-select coverage、repeat identity 和 serious wrong autofill。最近一次本地结果（以 `pnpm test` 输出为准）为 18 fixtures、55 scanned、44 eligible、45 AUTO plans、44 actual auto-filled、1 SUGGEST、precision 100.0%、coverage 100.0%、native 100.0%、custom-select 100.0%、repeat identity 100.0%、serious wrong autofill 0。
+benchmark 同时报告 `total_scanned`、计划中的 `auto/suggest/manual/abstain`、实际 `auto_filled`、`unsupported`、precision、overall/native/custom-select coverage、repeat identity 和 serious wrong autofill。最近一次本地结果（以 `pnpm test` 输出为准）为 18 fixtures、54 scanned、44 eligible、45 AUTO plans、44 actual auto-filled、1 SUGGEST、5 MANUAL、0 ABSTAIN、precision 100.0%、coverage 100.0%、native 100.0%、custom-select 100.0%、repeat identity 100.0%、serious wrong autofill 0。
 
 ## 状态与原因
 

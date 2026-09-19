@@ -12,6 +12,11 @@ export function compactText(value: string | null | undefined): string {
   return (value ?? "").normalize("NFKC").replace(/\s+/g, " ").trim();
 }
 
+export function isPlaceholderText(value: string | null | undefined): boolean {
+  const normalized = compactText(value).toLocaleLowerCase();
+  return normalized === "" || /^(?:请选择.*|select(?: one)?|choose(?: one)?|please select|--+|-+)$/iu.test(normalized);
+}
+
 export function containsAlias(haystack: string, alias: string): boolean {
   const normalizedHaystack = normalizeText(haystack);
   const normalizedAlias = normalizeText(alias);
